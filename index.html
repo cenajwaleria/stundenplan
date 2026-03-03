@@ -12,6 +12,24 @@ body {
   font-size: 12px; background: #f2f2f7; color: #1d1d1f;
 }
 
+/* ── READONLY-MODUS ── */
+#readonly-banner {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white; padding: 8px 16px; font-size: 13px; font-weight: 500;
+  text-align: center;
+}
+#readonly-banner button {
+  background: rgba(255,255,255,0.25); color: white; border: 1px solid rgba(255,255,255,0.4);
+  padding: 5px 14px; border-radius: 8px; cursor: pointer; font-size: 12px;
+  font-weight: 600; font-family: inherit; transition: background 0.15s;
+}
+#readonly-banner button:hover { background: rgba(255,255,255,0.4); }
+body.readonly-mode .cell-lehrer { cursor: default !important; }
+body.readonly-mode .cell-le { cursor: default !important; }
+body.readonly-mode .cell-ubertrag { pointer-events: none; }
+body.readonly-mode td[draggable] { cursor: default !important; -webkit-user-drag: none; }
+
 /* ── NAV (Apple-Style) ── */
 #topbar {
   display: flex; align-items: center; gap: 6px;
@@ -1128,6 +1146,10 @@ table.quali tbody tr:nth-child(even) td.quali-cell:not(.qualified) {
 </style>
 </head>
 <body>
+<div id="readonly-banner" style="display:flex;">
+  &#128065; Lesemodus &mdash; Zum Bearbeiten bitte einloggen
+  <button onclick="showGitHubSetup()">&#128274; Login</button>
+</div>
 
 <!-- Embedded Data -->
 <script type="text/plain" id="build-version">20260301_111511</script>
@@ -1167,7 +1189,7 @@ table.quali tbody tr:nth-child(even) td.quali-cell:not(.qualified) {
         <button onclick="exportBackup();toggleSettingsMenu(false)">&#128229; Backup exportieren</button>
         <button onclick="importBackup();toggleSettingsMenu(false)">&#128228; Backup importieren</button>
         <div class="menu-divider"></div>
-        <button onclick="showGitHubSetup();toggleSettingsMenu(false)">&#9729;&#65039; GitHub-Speicherung</button>
+        <button onclick="showGitHubSetup();toggleSettingsMenu(false)">&#128274; Login</button>
       </div>
       <input type="file" id="backup-file-input" accept=".json"
              style="display:none" onchange="handleBackupFile(this)">
@@ -2303,6 +2325,28 @@ let state = {
 const KW_NAMES = JSON.parse(document.getElementById('kw-names-json').textContent);
 if (KW_NAMES.length) state.currentKW = KW_NAMES[0];
 
+// ── READONLY-MODUS ───────────────────────────────────────────────────────────
+var READONLY_MODE = true;  // Standard: nur lesen. Wird false wenn GitHub-Token vorhanden
+
+function isReadonly() { return READONLY_MODE; }
+
+function _checkReadonlyStatus() {
+    READONLY_MODE = !_isGitHubConfigured();
+    _updateReadonlyUI();
+}
+
+function _updateReadonlyUI() {
+    // Banner anzeigen/verstecken
+    var banner = document.getElementById('readonly-banner');
+    if (banner) banner.style.display = READONLY_MODE ? 'flex' : 'none';
+    // Body-Klasse für CSS-basiertes Sperren
+    if (READONLY_MODE) {
+        document.body.classList.add('readonly-mode');
+    } else {
+        document.body.classList.remove('readonly-mode');
+    }
+}
+
 // ── SPEICHER-MODUS ───────────────────────────────────────────────────────────
 var STORAGE_MODE = 'local';  // 'github', 'server', oder 'local'
 var _githubFileSha = null;   // SHA des aktuellen Datei-Stands auf GitHub
@@ -2508,8 +2552,8 @@ function showGitHubSetup() {
     overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;';
     var connected = _isGitHubConfigured() && STORAGE_MODE === 'github';
     overlay.innerHTML = '<div style="background:white;border-radius:16px;padding:28px;max-width:420px;width:90%;box-shadow:0 12px 40px rgba(0,0,0,0.2);">'
-        + '<h3 style="margin:0 0 6px;font-size:17px;">GitHub-Speicherung einrichten</h3>'
-        + '<p style="font-size:12px;color:#666;margin:0 0 18px;">Alle \u00c4nderungen werden als Commits in deinem GitHub-Repo gespeichert.</p>'
+        + '<h3 style="margin:0 0 6px;font-size:17px;">Login</h3>'
+        + '<p style="font-size:12px;color:#666;margin:0 0 18px;">Mit Login kannst du den Stundenplan bearbeiten und speichern.</p>'
         + (connected ? '<div style="background:#e8f5e9;border-radius:8px;padding:8px 12px;margin-bottom:14px;font-size:12px;color:#2e7d32;">\u2713 Verbunden mit <b>' + cfg.owner + '/' + cfg.repo + '</b></div>' : '')
         + '<label style="font-size:12px;font-weight:600;display:block;margin-bottom:3px;">GitHub Benutzername</label>'
         + '<input id="gh-owner" type="text" value="' + (cfg.owner||'') + '" placeholder="z.B. meinname" '
@@ -2542,6 +2586,7 @@ function disconnectGitHub() {
     STORAGE_MODE = 'local';
     _githubFileSha = null;
     _updateConnectionStatus();
+    _checkReadonlyStatus();
     closeGitHubSetup();
 }
 
@@ -2712,6 +2757,7 @@ function exportBackup() {
 }
 
 function importBackup() {
+    if (isReadonly()) { alert('Bitte zuerst einloggen (Mehr \u2192 Login).'); return; }
     const inp = document.getElementById('backup-file-input');
     if (inp) inp.click();
 }
@@ -3216,6 +3262,7 @@ document.addEventListener('mousedown', e => {
 });
 
 function startEditing(cell) {
+    if (isReadonly()) return;
     if (editingCell) finishEditing(true);
     editingCell = cell;
     cell.classList.add('editing');
@@ -3339,6 +3386,7 @@ function getLehrerRecentLEsInGP(lehrer, gp) {
 }
 
 function openLEModal(cell) {
+    if (isReadonly()) return;
     activeLeCell = cell;
     const modal = document.getElementById('le-modal');
     const inp   = document.getElementById('le-input');
@@ -3603,6 +3651,7 @@ function renderDashboard() {
 }
 
 function setUbertrag(cell) {
+    if (isReadonly()) return;
     pushUndo('\u00dcbertrag ' + cell.dataset.gp);
     const gp  = cell.dataset.gp;
     const le  = cell.dataset.le;
@@ -4186,6 +4235,7 @@ document.addEventListener('mousedown', e => {
 let _dragSrc = null; // { gp, slotIdx, day }
 
 function attachDragDrop() {
+    if (isReadonly()) return;
     document.querySelectorAll('td.cell-lehrer').forEach(function(td) {
         const gp      = td.dataset.gp;
         const slotIdx = parseInt(td.dataset.slot, 10) - 1;
@@ -6086,7 +6136,9 @@ function monatNav(dir) {
 
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
+_checkReadonlyStatus();
 loadFromStorage();
+_checkReadonlyStatus();
 // Immer die aktuelle Kalenderwoche beim Öffnen anzeigen (nicht die zuletzt gespeicherte)
 var _initKW = (typeof getCurrentKWName === 'function') ? getCurrentKWName() : null;
 if (_initKW) state.currentKW = _initKW;

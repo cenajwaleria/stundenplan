@@ -2545,34 +2545,35 @@ function _updateConnectionStatus() {
 }
 
 // ── GitHub-Einrichtung Dialog ────────────────────────────────────────────────
+// Feste GitHub-Konfiguration (Owner + Repo fest eingebaut)
+var GITHUB_OWNER = 'cenajwaleria';
+var GITHUB_REPO  = 'stundenplan';
+
 function showGitHubSetup() {
     var cfg = _getGitHubConfig();
     var overlay = document.createElement('div');
     overlay.id = 'github-setup-overlay';
     overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;';
     var connected = _isGitHubConfigured() && STORAGE_MODE === 'github';
-    overlay.innerHTML = '<div style="background:white;border-radius:16px;padding:28px;max-width:420px;width:90%;box-shadow:0 12px 40px rgba(0,0,0,0.2);">'
-        + '<h3 style="margin:0 0 6px;font-size:17px;">Login</h3>'
-        + '<p style="font-size:12px;color:#666;margin:0 0 18px;">Mit Login kannst du den Stundenplan bearbeiten und speichern.</p>'
-        + (connected ? '<div style="background:#e8f5e9;border-radius:8px;padding:8px 12px;margin-bottom:14px;font-size:12px;color:#2e7d32;">\u2713 Verbunden mit <b>' + cfg.owner + '/' + cfg.repo + '</b></div>' : '')
-        + '<label style="font-size:12px;font-weight:600;display:block;margin-bottom:3px;">GitHub Benutzername</label>'
-        + '<input id="gh-owner" type="text" value="' + (cfg.owner||'') + '" placeholder="z.B. meinname" '
-        + 'style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:13px;margin-bottom:12px;box-sizing:border-box;">'
-        + '<label style="font-size:12px;font-weight:600;display:block;margin-bottom:3px;">Repository-Name</label>'
-        + '<input id="gh-repo" type="text" value="' + (cfg.repo||'') + '" placeholder="z.B. stundenplan" '
-        + 'style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:13px;margin-bottom:12px;box-sizing:border-box;">'
-        + '<label style="font-size:12px;font-weight:600;display:block;margin-bottom:3px;">Personal Access Token</label>'
-        + '<input id="gh-token" type="password" value="' + (cfg.token||'') + '" placeholder="ghp_xxxxxxxxxxxx" '
-        + 'style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:monospace;margin-bottom:6px;box-sizing:border-box;">'
-        + '<p style="font-size:10px;color:#999;margin:0 0 18px;">Fine-Grained Token mit Contents Read/Write f\u00fcr das Repo.</p>'
+    overlay.innerHTML = '<div style="background:white;border-radius:16px;padding:28px;max-width:380px;width:90%;box-shadow:0 12px 40px rgba(0,0,0,0.2);">'
+        + '<h3 style="margin:0 0 6px;font-size:17px;">' + (connected ? 'Eingeloggt' : 'Login') + '</h3>'
+        + '<p style="font-size:12px;color:#666;margin:0 0 18px;">' + (connected ? 'Du bist angemeldet und kannst den Stundenplan bearbeiten.' : 'Zugangsschl\u00fcssel eingeben um den Stundenplan bearbeiten zu k\u00f6nnen.') + '</p>'
+        + (connected
+            ? '<div style="background:#e8f5e9;border-radius:8px;padding:10px 14px;margin-bottom:18px;font-size:13px;color:#2e7d32;">\u2713 Bearbeitungsmodus aktiv</div>'
+            : '<label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Zugangsschl\u00fcssel</label>'
+              + '<input id="gh-token" type="password" value="" placeholder="Schl\u00fcssel eingeben\u2026" '
+              + 'style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px;font-family:monospace;margin-bottom:18px;box-sizing:border-box;">'
+        )
         + '<div style="display:flex;gap:8px;justify-content:flex-end;">'
-        + (connected ? '<button onclick="disconnectGitHub()" style="padding:8px 16px;border:1px solid #e74c3c;background:white;color:#e74c3c;border-radius:8px;cursor:pointer;font-size:13px;margin-right:auto;">Trennen</button>' : '')
-        + '<button onclick="closeGitHubSetup()" style="padding:8px 16px;border:1px solid #ddd;background:white;border-radius:8px;cursor:pointer;font-size:13px;">Abbrechen</button>'
-        + '<button onclick="testAndSaveGitHub()" style="padding:8px 16px;border:none;background:#007aff;color:white;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;">Verbinden</button>'
+        + (connected ? '<button onclick="disconnectGitHub()" style="padding:8px 16px;border:1px solid #e74c3c;background:white;color:#e74c3c;border-radius:8px;cursor:pointer;font-size:13px;margin-right:auto;">Abmelden</button>' : '')
+        + '<button onclick="closeGitHubSetup()" style="padding:8px 16px;border:1px solid #ddd;background:white;border-radius:8px;cursor:pointer;font-size:13px;">' + (connected ? 'Schlie\u00dfen' : 'Abbrechen') + '</button>'
+        + (connected ? '' : '<button onclick="testAndSaveGitHub()" style="padding:8px 16px;border:none;background:#007aff;color:white;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;">Anmelden</button>')
         + '</div>'
         + '<div id="gh-setup-status" style="margin-top:12px;font-size:12px;display:none;"></div>'
         + '</div>';
     document.body.appendChild(overlay);
+    var tokenInp = document.getElementById('gh-token');
+    if (tokenInp) { tokenInp.focus(); tokenInp.addEventListener('keydown', function(e) { if (e.key === 'Enter') testAndSaveGitHub(); }); }
     overlay.addEventListener('click', function(e) { if (e.target === overlay) closeGitHubSetup(); });
 }
 
@@ -2591,13 +2592,14 @@ function disconnectGitHub() {
 }
 
 function testAndSaveGitHub() {
-    var owner = document.getElementById('gh-owner').value.trim();
-    var repo  = document.getElementById('gh-repo').value.trim();
-    var token = document.getElementById('gh-token').value.trim();
+    var owner = GITHUB_OWNER;
+    var repo  = GITHUB_REPO;
+    var tokenInp = document.getElementById('gh-token');
+    var token = tokenInp ? tokenInp.value.trim() : '';
     var status = document.getElementById('gh-setup-status');
-    if (!owner || !repo || !token) {
+    if (!token) {
         status.style.display = 'block'; status.style.color = '#e74c3c';
-        status.textContent = 'Bitte alle Felder ausf\u00fcllen.';
+        status.textContent = 'Bitte Zugangsschl\u00fcssel eingeben.';
         return;
     }
     status.style.display = 'block'; status.style.color = '#999';
@@ -2607,15 +2609,15 @@ function testAndSaveGitHub() {
         headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/vnd.github.v3+json' }
     })
     .then(function(res) {
-        if (res.status === 401) throw new Error('Token ung\u00fcltig oder abgelaufen.');
-        if (res.status === 403) throw new Error('Token hat keine Berechtigung f\u00fcr dieses Repo.');
-        if (res.status === 404) throw new Error('Repo "' + owner + '/' + repo + '" nicht gefunden.');
+        if (res.status === 401) throw new Error('Ung\u00fcltiger Schl\u00fcssel. Bitte pr\u00fcfen und erneut eingeben.');
+        if (res.status === 403) throw new Error('Schl\u00fcssel hat keine Schreibrechte.');
+        if (res.status === 404) throw new Error('Zugang nicht gefunden. Bitte Schl\u00fcssel pr\u00fcfen.');
         if (!res.ok) throw new Error('Fehler: ' + res.status);
         return res.json();
     })
     .then(function(repoData) {
         if (!repoData.permissions || !repoData.permissions.push) {
-            throw new Error('Token hat keine Schreibrechte auf das Repo.');
+            throw new Error('Schl\u00fcssel hat keine Schreibrechte.');
         }
         // Speichern
         _saveGitHubConfig(owner, repo, token);
@@ -2624,7 +2626,7 @@ function testAndSaveGitHub() {
         try { _githubLoadData(); } catch(e) { _githubFileSha = null; }
         _updateConnectionStatus();
         status.style.color = '#27ae60';
-        status.textContent = '\u2713 Verbunden! Seite wird neu geladen\u2026';
+        status.textContent = '\u2713 Erfolgreich eingeloggt! Seite wird neu geladen\u2026';
         setTimeout(function() { location.reload(); }, 1000);
     })
     .catch(function(err) {

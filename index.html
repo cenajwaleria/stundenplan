@@ -4189,12 +4189,10 @@ function buildKWTable(kwName, gpData) {
                     sprachAkDays.push(day);
                 }
             });
-            // Slot-Label: normal + ggf. SprachAk-Zeiten
+            // Slot-Label: bei SprachAk komplett überschreiben
             let slotLabel = SLOT_LABELS[si];
             if (sprachAkDays.length > 0 && SPRACHAK_TIMES[si]) {
-                const dayList = sprachAkDays.map(d => DAY_ABBR[d]).join(', ');
-                slotLabel += '<br><span style="font-size:8px;color:#7b1fa2;font-weight:bold;">'
-                    + dayList + ': ' + SPRACHAK_TIMES[si] + '</span>';
+                slotLabel = SPRACHAK_TIMES[si];
             }
 
             // Lehrer row
@@ -4214,11 +4212,6 @@ function buildKWTable(kwName, gpData) {
                     const lTxt = slotTyp ? (TYP_TEXT_JS[slotTyp]   || '#000') : c.text;
                     // Bei Feiertag: "Feiertag" anzeigen statt Lehrername
                     let lehrerContent = isFt ? (si === 0 ? 'Feiertag' : '') : esc(lv);
-                    // SprachAk: Uhrzeit im Feld anzeigen
-                    if (!isFt && lv.trim().toLowerCase() === 'sprachak' && SPRACHAK_TIMES[si]) {
-                        lehrerContent += '<br><span style="font-size:8px;color:#7b1fa2;font-weight:bold;">'
-                            + SPRACHAK_TIMES[si] + '</span>';
-                    }
                     html += `<td class="cell-lehrer${ftClass}${typClass}" colspan="2" data-gp="${gp}" `
                           + `data-slot="${slotNum}" data-day="${day}" `
                           + `style="background:${lBg};color:${lTxt};">${lehrerContent}</td>`;

@@ -3684,6 +3684,7 @@ function setUbertrag(cell) {
 
 // ── LEHRER HINZUFUEGEN / LOESCHEN ──────────────────────────────────────────────
 function addLehrer() {
+    if (isReadonly()) return;
     const inp  = document.getElementById('new-lehrer-input');
     const name = inp.value.trim();
     if (!name) return;
@@ -3696,6 +3697,7 @@ function addLehrer() {
 }
 
 function deleteLehrer(name) {
+    if (isReadonly()) return;
     if (!confirm(`"${name}" wirklich aus der Liste entfernen?`)) return;
     state.lehrer_list = state.lehrer_list.filter(l => l !== name);
     markDirty();
@@ -3782,6 +3784,7 @@ function renderLV() {
 
     container.querySelectorAll('.avail-cell').forEach(cell => {
         cell.ondblclick = function() {
+            if (isReadonly()) return;
             const l = this.dataset.lehrer, d = this.dataset.day, s = parseInt(this.dataset.slot);
             if (!state.lv_data[l])    state.lv_data[l]    = {};
             if (!state.lv_data[l][d]) state.lv_data[l][d] = ['avail','avail','avail','avail'];
@@ -3795,6 +3798,7 @@ function renderLV() {
 
     container.querySelectorAll('.typ-btn').forEach(btn => {
         btn.onclick = function() {
+            if (isReadonly()) return;
             const l   = this.dataset.lehrer;
             const cur = getLehrerKat(l);
             state.lehrer_typ[l] = TYP_NEXT[cur] || 'fest';
@@ -3869,6 +3873,7 @@ function renderAbwesenheitList() {
 }
 
 function addLehrerAbwesenheit() {
+    if (isReadonly()) return;
     const lehrerSel = document.getElementById('abw-lehrer-select');
     const vonEl     = document.getElementById('abw-von');
     const bisEl     = document.getElementById('abw-bis');
@@ -3890,6 +3895,7 @@ function addLehrerAbwesenheit() {
 }
 
 function deleteLehrerAbwesenheit(id) {
+    if (isReadonly()) return;
     if (!Array.isArray(state.lehrer_abwesenheit)) return;
     state.lehrer_abwesenheit = state.lehrer_abwesenheit.filter(e => e.id !== id);
     markDirty();
@@ -4127,6 +4133,7 @@ function closeSolPopup() {
 
 // Oeffnet das SOL-Popup fuer einen Slot und markiert ihn als SOL
 function openSolPopup(gp, slotNum, day, btnEl) {
+    if (isReadonly()) return;
     const kw = state.currentKW;
     const slotIdx = slotNum - 1;
 
@@ -4304,6 +4311,7 @@ function isFeiertag(kw, day) {
     return (state.feiertage[kw] || []).includes(day);
 }
 function toggleFeiertag(kw, day) {
+    if (isReadonly()) return;
     if (!state.feiertage[kw]) state.feiertage[kw] = [];
     const idx = state.feiertage[kw].indexOf(day);
     if (idx >= 0) state.feiertage[kw].splice(idx, 1);
@@ -4557,6 +4565,7 @@ function isGPInTheorie(gp, kw) {
 }
 
 function toggleTheoKW(gp, kw) {
+    if (isReadonly()) return;
     pushUndo('Theorie ' + gp);
     if (!state.theo[gp]) state.theo[gp] = [];
     const idx = state.theo[gp].indexOf(kw);
@@ -4578,6 +4587,7 @@ function theoFillGP(gp) {
 }
 
 function theoClearGP(gp) {
+    if (isReadonly()) return;
     pushUndo('Theorie ' + gp + ' leeren');
     // Remove all theo entries → GP always visible
     state.theo[gp] = [];
@@ -5670,6 +5680,7 @@ function renderQual() {
  * Lightweight toggle + DOM update without full re-render (performance).
  */
 function toggleQualAndRefreshCell(cellEl, lehrer, leCode) {
+    if (isReadonly()) return;
     toggleQual(lehrer, leCode);
     const isQual = getQual(lehrer, leCode);
     if (isQual) {
@@ -5852,6 +5863,7 @@ function loadNotiz() {
 function initNotizHandler() {
     const ta = document.getElementById('kw-notiz');
     if (!ta) return;
+    if (isReadonly()) { ta.readOnly = true; ta.style.opacity = '0.7'; return; }
     // onInput: sofort in state speichern (kein Button nötig)
     ta.addEventListener('input', function () {
         const kw = state.currentKW || '';

@@ -13604,9 +13604,10 @@
           {
             "mo": {
               "lehrer": "SprachAk.",
-              "ce": "CE: 11",
+              "ce": "CE 11",
               "le": "LE: 35",
-              "thema": "Demenz"
+              "thema": "Demenz",
+              "typ": "blockstart"
             },
             "di": {
               "lehrer": "SprachAk.",
@@ -25447,5 +25448,5 @@
     ]
   },
   "theo": {},
-  "currentKW": "KW 11"
+  "currentKW": "KW 12"
 }

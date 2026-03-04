@@ -3800,9 +3800,9 @@ function renderDashboard() {
                 + `<div class="gp-bar-inner">`
                 + `<span class="prog-pct">${pctLbl}</span>`
                 + `<span class="bar-vals">`
-                + `\u00dc:\u202f<span class="cell-ubertrag" contenteditable="true" `
+                + `\u00dc:\u202f<span class="cell-ubertrag" contenteditable="${isReadonly() ? 'false' : 'true'}" `
                 +   `data-gp="${gp}" data-le="${leCode}" `
-                +   `onblur="setUbertrag(this)" title="\u00dcbertrag bearbeiten">${ubLbl}</span>`
+                +   `onblur="setUbertrag(this)" title="\u00dcbertrag ${isReadonly() ? '(nur mit Login)' : 'bearbeiten'}">${ubLbl}</span>`
                 + `\u2002Soll:\u202f${soll > 0 ? soll : '\u2013'}`
                 + `\u2002Ist:\u202f${ikwLbl}`
                 + `\u2002Ges:\u202f<span class="ges-val">${gesLbl}</span>`
@@ -5079,7 +5079,7 @@ function renderKlassenbuch() {
             for (var si = 0; si < 4; si++) {
                 if (si === 3 && day === 'fr') continue;
                 var cell = (slots[si] || {})[day] || {};
-                if (!cell.lehrer && !cell.le) continue;
+                if (_isKBPause(cell)) continue;  // Pausen/leere Slots überspringen
 
                 var dayDate2 = monday ? new Date(monday.getTime() + di * 86400000) : null;
                 var dateStr2 = dayDate2 ? DAY_NAMES_JS[day] + ' ' + dayDate2.getDate() + '.' + (dayDate2.getMonth()+1) + '.' : DAY_NAMES_JS[day];
@@ -5105,43 +5105,64 @@ function renderKlassenbuch() {
 }
 
 // ── WORD-EXPORT ──────────────────────────────────────────────────────────────
+function _isKBPause(cell) {
+    // Pause- oder leere Einträge erkennen
+    var t = (cell.thema || '').trim().toLowerCase();
+    var l = (cell.lehrer || '').trim();
+    if (t === 'pause' || t === 'mittagspause' || t === 'fr\u00fchst\u00fcckspause') return true;
+    if (!l && !cell.le && !cell.ce) return true;  // komplett leer
+    return false;
+}
+
 function exportKlassenbuchWord() {
     var gpSel = document.getElementById('kb-gp-select');
     var blockSel = document.getElementById('kb-block-select');
     var gp = gpSel ? gpSel.value : 'GP 01';
     var blocks = getTheoBlockRanges(gp);
     var kwList;
-    var blockLabel = 'Alle';
-    if (blockSel && blockSel.value !== 'all') {
+    var blockLabel;
+
+    // Block MUSS ausgew\u00e4hlt sein (nicht "Alle")
+    if (!blockSel || blockSel.value === 'all') {
+        if (blocks.length === 1) {
+            kwList = blocks[0].kws;
+            blockLabel = blocks[0].label;
+        } else {
+            alert('Bitte w\u00e4hle einen Theorieblock aus, bevor du exportierst.');
+            return;
+        }
+    } else {
         var bi = parseInt(blockSel.value);
         kwList = blocks[bi].kws;
         blockLabel = blocks[bi].label;
-    } else {
-        kwList = KW_NAMES.filter(function(kw) { return isGPInTheorie(gp, kw) && !kw.includes('/25'); });
     }
 
     var stats = getKBStats(gp, kwList);
     var slotTimes = ['08:45\u201310:15', '10:30\u201312:00', '12:30\u201314:00', '14:15\u201315:45'];
-    var zeitraum = kwList.length > 0 ? formatKWDateRange(kwList[0]) + ' bis ' + formatKWDateRange(kwList[kwList.length-1]) : '';
+    var zeitraum = kwList.length > 0 ? formatKWDateRange(kwList[0]) + ' \u2013 ' + formatKWDateRange(kwList[kwList.length-1]) : '';
 
     var doc = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">'
         + '<head><meta charset="utf-8"><style>'
-        + 'body { font-family: Calibri, Arial, sans-serif; font-size: 11pt; }'
-        + 'h1 { font-size: 16pt; margin-bottom: 4pt; }'
-        + 'h2 { font-size: 12pt; color: #555; margin-top: 0; }'
-        + 'table { border-collapse: collapse; width: 100%; margin-top: 12pt; }'
-        + 'th { background: #4472c4; color: white; padding: 5pt 6pt; font-size: 9pt; text-align: left; }'
-        + 'td { padding: 4pt 6pt; border: 1pt solid #ccc; font-size: 9pt; }'
+        + '@page { size: A4 landscape; margin: 1.5cm; }'
+        + 'body { font-family: Calibri, Arial, sans-serif; font-size: 10pt; }'
+        + 'h1 { font-size: 14pt; margin-bottom: 2pt; }'
+        + 'h2 { font-size: 10pt; color: #555; margin-top: 0; margin-bottom: 8pt; }'
+        + 'table { border-collapse: collapse; width: 100%; }'
+        + 'th { background: #4472c4; color: white; padding: 4pt 5pt; font-size: 8pt; text-align: left; }'
+        + 'td { padding: 3pt 5pt; border: 0.5pt solid #bbb; font-size: 8pt; vertical-align: top; }'
         + 'tr.feiertag td { background: #fff3e0; color: #e65100; font-style: italic; }'
         + 'tr.missing td { background: #fff5f5; }'
-        + 'tr.kw-header td { background: #d6dce4; font-weight: bold; font-size: 10pt; }'
-        + '.summary { margin-top: 16pt; font-size: 10pt; }'
+        + 'tr.kw-header td { background: #d6dce4; font-weight: bold; font-size: 9pt; padding: 5pt 6pt; }'
+        + 'td.day-cell { font-weight: bold; background: #f5f5f7; }'
+        + '.summary { margin-top: 10pt; font-size: 9pt; padding: 6pt 10pt; background: #f5f5f7; border-radius: 4pt; }'
+        + 'ul { margin: 0; padding-left: 12pt; }'
+        + 'li { margin-bottom: 1pt; }'
         + '</style></head><body>';
 
-    doc += '<h1>Klassenbuch \u2014 ' + gp + '</h1>';
-    doc += '<h2>' + esc(blockLabel) + '<br>' + esc(zeitraum) + '</h2>';
+    doc += '<h1>Klassenbuch \u2014 ' + esc(gp) + '</h1>';
+    doc += '<h2>' + esc(blockLabel) + ' &nbsp;\u00b7&nbsp; ' + esc(zeitraum) + ' &nbsp;\u00b7&nbsp; ' + kwList.length + ' Wochen</h2>';
 
-    doc += '<table><tr><th>Datum</th><th>Zeit</th><th>Lehrer</th><th>CE</th><th>LE</th><th>Geplantes Thema</th><th>Tats\u00e4chlicher Inhalt</th><th>\u2713</th></tr>';
+    doc += '<table><tr><th>Datum</th><th>Zeit</th><th>Lehrkraft</th><th>CE</th><th>LE</th><th>Geplantes Thema</th><th style="width:28%;">Tats\u00e4chlicher Inhalt</th><th style="width:3%;">\u2713</th></tr>';
 
     kwList.forEach(function(kw) {
         var monday = getKWMonday(kw);
@@ -5159,26 +5180,50 @@ function exportKlassenbuchWord() {
                 doc += '<tr class="feiertag"><td>' + ds + '</td><td colspan="7">Feiertag: ' + esc(ftName) + '</td></tr>';
                 return;
             }
+
+            // Slots f\u00fcr diesen Tag sammeln (ohne Pausen/leere)
+            var daySlots = [];
             for (var si = 0; si < 4; si++) {
                 if (si === 3 && day === 'fr') continue;
                 var cell = (slots[si] || {})[day] || {};
-                if (!cell.lehrer && !cell.le) continue;
-                var dayDate2 = monday ? new Date(monday.getTime() + di * 86400000) : null;
-                var ds2 = dayDate2 ? DAY_NAMES_JS[day] + ' ' + dayDate2.getDate() + '.' + (dayDate2.getMonth()+1) + '.' : day;
+                if (_isKBPause(cell)) continue;
+                daySlots.push({ si: si, cell: cell });
+            }
+            if (daySlots.length === 0) return;  // Tag komplett leer
+
+            var dayDate2 = monday ? new Date(monday.getTime() + di * 86400000) : null;
+            var ds2 = dayDate2 ? DAY_NAMES_JS[day] + ' ' + dayDate2.getDate() + '.' + (dayDate2.getMonth()+1) + '.' : DAY_NAMES_JS[day];
+
+            daySlots.forEach(function(s, idx) {
+                var cell = s.cell;
+                // SprachAk-Sonderzeit
+                var SPRACHAK_TIMES = ['', '', '14:00\u201315:30', '16:00\u201317:30'];
+                var zeit = slotTimes[s.si];
+                if ((cell.lehrer||'').trim().toLowerCase() === 'sprachak' && SPRACHAK_TIMES[s.si]) {
+                    zeit = SPRACHAK_TIMES[s.si];
+                }
                 var cls = cell.kb_bestaetigt ? '' : ' class="missing"';
-                doc += '<tr' + cls + '><td>' + ds2 + '</td><td>' + slotTimes[si] + '</td>'
-                    + '<td>' + esc(cell.lehrer||'') + '</td><td>' + esc(cell.ce||'') + '</td>'
-                    + '<td>' + esc(cell.le||'') + '</td><td>' + esc(cell.thema||'') + '</td>'
+                // Datum nur in erster Zeile des Tages
+                var datumTd = idx === 0
+                    ? '<td class="day-cell" rowspan="' + daySlots.length + '">' + ds2 + '</td>'
+                    : '';
+                doc += '<tr' + cls + '>' + datumTd
+                    + '<td>' + zeit + '</td>'
+                    + '<td>' + esc(cell.lehrer||'') + '</td>'
+                    + '<td>' + esc(cell.ce||'') + '</td>'
+                    + '<td>' + esc(cell.le||'') + '</td>'
+                    + '<td>' + esc(cell.thema||'') + '</td>'
                     + '<td>' + _formatKBInhalt(cell.kb_inhalt||'') + '</td>'
                     + '<td style="text-align:center;">' + (cell.kb_bestaetigt ? '\u2713' : '') + '</td></tr>';
-            }
+            });
         });
     });
 
     doc += '</table>';
-    doc += '<div class="summary"><b>Zusammenfassung:</b> ' + stats.bestaetigt + ' von ' + stats.total + ' Slots dokumentiert (' + stats.prozent + '%)'
-        + '<br>Fehlende Eintr\u00e4ge: ' + stats.fehlend
-        + '<br>Feiertage im Zeitraum: ' + stats.feiertage + '</div>';
+    doc += '<div class="summary"><b>Zusammenfassung:</b> ' + stats.bestaetigt + ' von ' + stats.total + ' Unterrichtseinheiten dokumentiert (' + stats.prozent + '%)'
+        + (stats.fehlend > 0 ? ' &nbsp;\u00b7&nbsp; Fehlende Eintr\u00e4ge: ' + stats.fehlend : '')
+        + (stats.feiertage > 0 ? ' &nbsp;\u00b7&nbsp; Feiertage: ' + stats.feiertage : '')
+        + '</div>';
     doc += '</body></html>';
 
     var blob = new Blob(['\ufeff' + doc], { type: 'application/msword' });

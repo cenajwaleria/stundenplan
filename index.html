@@ -655,9 +655,9 @@ td.cell-lehrer.drag-source { opacity: 0.4; outline: 2px dashed #e67e22 !importan
 td.cell-lehrer.drag-over   { background: #d5f5e3 !important; outline: 2px solid #27ae60 !important; }
 
 /* === Feature Feiertage === */
-.feiertag-col { background: #e8e8e8 !important; color: #bbb !important; cursor: not-allowed !important; pointer-events: none !important; }
+.feiertag-col { background: #fff0f0 !important; color: #c62828 !important; cursor: not-allowed !important; pointer-events: none !important; font-style: italic; text-align: center !important; font-size: 10px !important; }
 .feiertag-col .sol-btn { display: none !important; }
-.feiertag-header { background: #d0d0d0 !important; }
+.feiertag-header { background: #ffcdd2 !important; }
 .feiertag-badge { display:inline-block; font-size:9px; background:#aaa; color:#fff; border-radius:3px; padding:1px 4px; margin-left:4px; }
 .btn-feiertag-toggle { font-size:9px; background:none; border:1px solid #aaa; border-radius:3px; cursor:pointer; padding:1px 4px; margin-left:3px; color:#666; }
 .btn-feiertag-toggle:hover { background:#e74c3c; color:white; border-color:#e74c3c; }
@@ -690,6 +690,7 @@ table.lehrer-export-tbl tr:hover td { background: rgba(0,0,0,0.03); }
 .slot-typ-blockstart { background: #FFC000 !important; }
 .slot-typ-lernstand  { background: #00B0F0 !important; }
 .slot-typ-frei       { background: #FF0000 !important; color: #fff !important; }
+.slot-typ-hop        { background: #CC99FF !important; }
 .slot-typ-badge { display: inline-block; font-size: 8px; padding: 1px 3px; border-radius: 2px; margin-left: 2px; vertical-align: middle; opacity: 0.8; }
 
 /* === Theorieblock-Kalender === */
@@ -2336,6 +2337,7 @@ table.quali tbody tr:nth-child(even) td.quali-cell:not(.qualified) {
         <option value="ausflug">&#128994; Ausflug</option>
         <option value="blockstart">&#128995; Blockstart / Blockende</option>
         <option value="lernstand">&#128996; Lernstandskontrolle</option>
+        <option value="hop">&#128995; HOP</option>
         <option value="frei">&#9634; Frei / Feiertag</option>
       </select>
     </div>
@@ -3583,7 +3585,7 @@ function applyLE(cell, rawVal, typ) {
     const table = cell.closest('table');
     if (table) {
         const typClass = typ ? 'slot-typ-' + typ : '';
-        const SLOT_TYP_CLASSES = ['slot-typ-sol','slot-typ-orga','slot-typ-ausflug','slot-typ-blockstart','slot-typ-lernstand','slot-typ-frei'];
+        const SLOT_TYP_CLASSES = ['slot-typ-sol','slot-typ-orga','slot-typ-ausflug','slot-typ-blockstart','slot-typ-lernstand','slot-typ-frei','slot-typ-hop'];
         const relCells = table.querySelectorAll(
             `[data-gp="${gp}"][data-slot="${slot}"][data-day="${day}"]`);
         relCells.forEach(tc => {
@@ -4099,7 +4101,7 @@ const GP_COLORS_JS = {
 const DAYS_JS = ["mo","di","mi","do","fr"];
 const DAY_NAMES_JS = {"mo":"Montag","di":"Dienstag","mi":"Mittwoch","do":"Donnerstag","fr":"Freitag"};
 const SLOT_LABELS = ["08:45 \u2013 10:15 Uhr","10:30 \u2013 12:00 Uhr","12:30 \u2013 14:00 Uhr","14:15 \u2013 15:45 Uhr"];
-const TYP_COLORS_JS = { sol:'#FFFF00', orga:'#FFC000', ausflug:'#92D050', blockstart:'#FFC000', lernstand:'#00B0F0', frei:'#FF0000' };
+const TYP_COLORS_JS = { sol:'#FFFF00', orga:'#FFC000', ausflug:'#92D050', blockstart:'#FFC000', lernstand:'#00B0F0', frei:'#FF0000', hop:'#CC99FF' };
 const TYP_TEXT_JS   = { frei:'#ffffff' };  // white text only for frei; others black
 
 function buildKWTable(kwName, gpData) {
@@ -4128,11 +4130,21 @@ function buildKWTable(kwName, gpData) {
         }
         html += `<td class="col-a" style="background:${c.bg};color:${c.text};">${gp}${kbBadgeHtml}</td>`;
         DAYS_JS.forEach(d => {
-            const ftHdr = isFeiertag(kwName, d) ? ' feiertag-header' : '';
-            html += `<td colspan="2" class="${ftHdr}" style="background:${c.bg};color:${c.text};">${DAY_NAMES_JS[d]}`
-                  + `<button class="btn-feiertag-toggle ${isFeiertag(kwName, d) ? 'active' : ''}" `
-                  + `onclick="toggleFeiertag('${kwName}','${d}')" `
-                  + `title="Als schulfrei markieren">&#128274;</button></td>`;
+            const isFt = isFeiertag(kwName, d);
+            const ftHdr = isFt ? ' feiertag-header' : '';
+            if (isFt) {
+                const ftName = (typeof getFeiertagName === 'function') ? getFeiertagName(kwName, d) : '';
+                html += `<td colspan="2" class="${ftHdr}" style="background:#ffcdd2;color:#c62828;">`
+                      + `${DAY_NAMES_JS[d]}<br><span style="font-size:9px;font-weight:normal;">${ftName || 'Feiertag'}</span>`
+                      + `<button class="btn-feiertag-toggle active" `
+                      + `onclick="toggleFeiertag('${kwName}','${d}')" `
+                      + `title="Feiertag aufheben" style="font-size:7px;margin-left:3px;">&#10005;</button></td>`;
+            } else {
+                html += `<td colspan="2" class="${ftHdr}" style="background:${c.bg};color:${c.text};">${DAY_NAMES_JS[d]}`
+                      + `<button class="btn-feiertag-toggle" `
+                      + `onclick="toggleFeiertag('${kwName}','${d}')" `
+                      + `title="Als schulfrei markieren">&#128274;</button></td>`;
+            }
         });
         html += '</tr>';
 
@@ -4149,14 +4161,17 @@ function buildKWTable(kwName, gpData) {
                 } else {
                     const slotCell = sd[day] || {};
                     const lv = slotCell.lehrer || '';
-                    const ftClass = isFeiertag(kwName, day) ? ' feiertag-col' : '';
+                    const isFt = isFeiertag(kwName, day);
+                    const ftClass = isFt ? ' feiertag-col' : '';
                     const slotTyp = slotCell.typ || '';
                     const typClass = slotTyp ? ' slot-typ-' + slotTyp : '';
                     const lBg  = slotTyp ? (TYP_COLORS_JS[slotTyp] || c.bg) : c.bg;
                     const lTxt = slotTyp ? (TYP_TEXT_JS[slotTyp]   || '#000') : c.text;
+                    // Bei Feiertag: "Feiertag" anzeigen statt Lehrername
+                    const lehrerContent = isFt ? (si === 0 ? 'Feiertag' : '') : esc(lv);
                     html += `<td class="cell-lehrer${ftClass}${typClass}" colspan="2" data-gp="${gp}" `
                           + `data-slot="${slotNum}" data-day="${day}" `
-                          + `style="background:${lBg};color:${lTxt};">${esc(lv)}</td>`;
+                          + `style="background:${lBg};color:${lTxt};">${lehrerContent}</td>`;
                 }
             });
             html += '</tr>';
@@ -4169,9 +4184,11 @@ function buildKWTable(kwName, gpData) {
                     html += '<td class="no-slot" colspan="2"></td>';
                 } else {
                     const cell = sd[day] || {};
-                    const ce = cell.ce || '', le = cell.le || '';
+                    const isFt = isFeiertag(kwName, day);
+                    const ce = isFt ? '' : (cell.ce || '');
+                    const le = isFt ? '' : (cell.le || '');
                     const hv = (le && le !== '-') ? ' has-value' : '';
-                    const ftClass = isFeiertag(kwName, day) ? ' feiertag-col' : '';
+                    const ftClass = isFt ? ' feiertag-col' : '';
                     const slotTyp = cell.typ || '';
                     const typClass = slotTyp ? ' slot-typ-' + slotTyp : '';
                     const ceBg = slotTyp ? (TYP_COLORS_JS[slotTyp] || c.bg) : c.bg;
@@ -4189,19 +4206,20 @@ function buildKWTable(kwName, gpData) {
                     html += '<td class="no-slot" colspan="2"></td>';
                 } else {
                     const cell = sd[day] || {};
+                    const isFt = isFeiertag(kwName, day);
                     // Thema: gespeichert (wenn gültig) oder aus LE_LOOKUP nachschlagen
                     const leCodeT = (cell.le || '').trim();
                     const rawThema = cell.thema || '';
-                    const thema = (rawThema && rawThema !== 'Pause')
+                    const thema = isFt ? '' : ((rawThema && rawThema !== 'Pause')
                         ? rawThema
-                        : (leCodeT ? ((LE_LOOKUP[leCodeT] || {}).bezeichnung || '') : '');
-                    const ftClass = isFeiertag(kwName, day) ? ' feiertag-col' : '';
+                        : (leCodeT ? ((LE_LOOKUP[leCodeT] || {}).bezeichnung || '') : ''));
+                    const ftClass = isFt ? ' feiertag-col' : '';
                     const slotTyp = cell.typ || '';
                     const typClass = slotTyp ? ' slot-typ-' + slotTyp : '';
                     const themaBg = slotTyp ? (TYP_COLORS_JS[slotTyp] || c.bg) : c.bg;
                     // KB-Indikator: nur wenn Lehrer eingetragen und kein Feiertag
                     let kbHtml = '';
-                    if ((cell.lehrer || '').trim() && !isFeiertag(kwName, day)) {
+                    if ((cell.lehrer || '').trim() && !isFt) {
                         const kbOk = cell.kb_bestaetigt === true;
                         const kbIcon = kbOk ? '\u2705' : '\uD83D\uDD34';
                         const kbTitle = kbOk ? 'Klassenbuch best\u00e4tigt' : 'Klassenbuch-Eintrag fehlt';

@@ -50,6 +50,29 @@ body {
   box-sizing: border-box;
 }
 #kb-modal textarea:disabled { background: #f5f5f5; color: #666; }
+/* Aufzählungsliste */
+.kb-bullet-list { margin: 4px 0 0; }
+.kb-bullet-item {
+  display: flex; align-items: center; gap: 6px; margin-bottom: 5px;
+}
+.kb-bullet-item::before {
+  content: '\2022'; color: #007aff; font-size: 16px; font-weight: bold; flex-shrink: 0;
+}
+.kb-bullet-item input {
+  flex: 1; padding: 6px 8px; border: 1px solid #ddd; border-radius: 6px;
+  font-size: 13px; font-family: inherit; box-sizing: border-box;
+}
+.kb-bullet-item input:focus { outline: none; border-color: #007aff; }
+.kb-bullet-remove {
+  background: none; border: none; color: #ccc; font-size: 16px; cursor: pointer;
+  padding: 2px 4px; line-height: 1; flex-shrink: 0;
+}
+.kb-bullet-remove:hover { color: #e74c3c; }
+.kb-bullet-add {
+  background: none; border: 1px dashed #ccc; border-radius: 6px; color: #888;
+  font-size: 12px; padding: 5px 10px; cursor: pointer; width: 100%; margin-top: 2px;
+}
+.kb-bullet-add:hover { border-color: #007aff; color: #007aff; }
 
 /* ── Klassenbuch-Tab ── */
 #klassenbuch-view { padding: 12px; }
@@ -4781,6 +4804,19 @@ function openKBModal(kw, gp, slotIdx, day) {
     var leLabel = cell.le || '';
     var leLookup = LE_LOOKUP[leLabel.trim()] || {};
 
+    // Bestehende Punkte parsen (Format: "• Punkt1\n• Punkt2" oder einfacher Text)
+    var existingItems = _parseKBBullets(cell.kb_inhalt || '');
+    if (existingItems.length === 0) existingItems = [''];  // Mindestens ein leeres Feld
+
+    var bulletsHtml = '';
+    existingItems.forEach(function(item, idx) {
+        bulletsHtml += '<div class="kb-bullet-item">'
+            + '<input type="text" class="kb-bullet-input" value="' + esc(item) + '" placeholder="Inhalt eingeben\u2026"'
+            + ' onkeydown="if(event.key===\'Enter\'){event.preventDefault();_kbAddBullet();}">'
+            + '<button class="kb-bullet-remove" onclick="_kbRemoveBullet(this)" title="Entfernen">\u00d7</button>'
+            + '</div>';
+    });
+
     var modal = document.getElementById('kb-modal');
     modal.innerHTML = '<h3>Klassenbuch-Eintrag</h3>'
         + '<div class="kb-meta">' + kw + ' \u00b7 ' + dayLabel + ' \u00b7 Slot ' + (slotIdx+1) + ' (' + slotTimes[slotIdx] + ')<br>' + gp + '</div>'
@@ -4788,8 +4824,9 @@ function openKBModal(kw, gp, slotIdx, day) {
         + '<div class="kb-info"><span>LE:</span> ' + esc(leLabel) + (leLookup.bezeichnung ? ' \u2014 ' + esc(leLookup.bezeichnung) : '') + '</div>'
         + '<div class="kb-info"><span>Thema:</span> ' + esc(cell.thema || '\u2013') + '</div>'
         + '<label style="font-size:12px;font-weight:600;display:block;margin:12px 0 4px;">Tats\u00e4chlicher Inhalt:</label>'
-        + '<textarea id="kb-inhalt-input" placeholder="Was wurde tats\u00e4chlich unterrichtet?">' + esc(cell.kb_inhalt || '') + '</textarea>'
-        + '<label style="font-size:12px;margin-top:8px;display:flex;align-items:center;gap:6px;cursor:pointer;">'
+        + '<div id="kb-bullet-container" class="kb-bullet-list">' + bulletsHtml + '</div>'
+        + '<button class="kb-bullet-add" onclick="_kbAddBullet()">+ Punkt hinzuf\u00fcgen</button>'
+        + '<label style="font-size:12px;margin-top:10px;display:flex;align-items:center;gap:6px;cursor:pointer;">'
         + '<input type="checkbox" id="kb-bestaetigt-input"' + (cell.kb_bestaetigt ? ' checked' : '') + '> Eintrag best\u00e4tigt</label>'
         + '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;">'
         + '<button onclick="closeKBModal()" style="padding:8px 16px;border:1px solid #ddd;background:white;border-radius:8px;cursor:pointer;font-size:13px;">Abbrechen</button>'
@@ -4797,6 +4834,54 @@ function openKBModal(kw, gp, slotIdx, day) {
         + '</div>';
 
     document.getElementById('kb-modal-overlay').classList.add('active');
+    // Fokus auf erstes leeres Feld
+    var firstEmpty = modal.querySelector('.kb-bullet-input[value=""]') || modal.querySelector('.kb-bullet-input');
+    if (firstEmpty) setTimeout(function() { firstEmpty.focus(); }, 100);
+}
+
+// Aufzählungspunkte parsen
+function _parseKBBullets(text) {
+    if (!text || !text.trim()) return [];
+    return text.split('\n').map(function(line) {
+        return line.replace(/^\s*[\u2022\-\*]\s*/, '').trim();
+    }).filter(function(line) { return line.length > 0; });
+}
+
+// Neuen Aufzählungspunkt hinzufügen
+function _kbAddBullet() {
+    var container = document.getElementById('kb-bullet-container');
+    if (!container) return;
+    var div = document.createElement('div');
+    div.className = 'kb-bullet-item';
+    div.innerHTML = '<input type="text" class="kb-bullet-input" value="" placeholder="Inhalt eingeben\u2026"'
+        + ' onkeydown="if(event.key===\'Enter\'){event.preventDefault();_kbAddBullet();}">'
+        + '<button class="kb-bullet-remove" onclick="_kbRemoveBullet(this)" title="Entfernen">\u00d7</button>';
+    container.appendChild(div);
+    div.querySelector('input').focus();
+}
+
+// Aufzählungspunkt entfernen
+function _kbRemoveBullet(btn) {
+    var container = document.getElementById('kb-bullet-container');
+    var item = btn.closest('.kb-bullet-item');
+    if (!item || !container) return;
+    // Mindestens ein Feld behalten
+    if (container.querySelectorAll('.kb-bullet-item').length <= 1) {
+        item.querySelector('input').value = '';
+        return;
+    }
+    item.remove();
+}
+
+// Aufzählungspunkte als Text sammeln
+function _collectKBBullets() {
+    var inputs = document.querySelectorAll('#kb-bullet-container .kb-bullet-input');
+    var lines = [];
+    inputs.forEach(function(inp) {
+        var val = inp.value.trim();
+        if (val) lines.push('\u2022 ' + val);
+    });
+    return lines.join('\n');
 }
 
 function closeKBModal() {
@@ -4808,7 +4893,7 @@ function saveKBModal() {
     // Klassenbuch ist IMMER bearbeitbar (auch im Lesemodus)
     if (!_kbModalData) return;
     var d = _kbModalData;
-    var inhalt = document.getElementById('kb-inhalt-input').value;
+    var inhalt = _collectKBBullets();
     var bestaetigt = document.getElementById('kb-bestaetigt-input').checked;
     pushUndo('Klassenbuch ' + d.gp + ' ' + d.kw);
     // Sicherstellen dass der Pfad existiert
@@ -4848,6 +4933,19 @@ function _saveLocalKBEntry(kw, gp, slotIdx, day, inhalt, bestaetigt) {
             setTimeout(function() { _updateConnectionStatus(); }, 2000);
         }
     } catch(e) { console.warn('KB local save failed', e); }
+}
+
+// KB-Inhalt als HTML-Liste formatieren
+function _formatKBInhalt(text) {
+    if (!text || !text.trim()) return '';
+    var lines = text.split('\n').map(function(l) {
+        return l.replace(/^\s*[\u2022\-\*]\s*/, '').trim();
+    }).filter(function(l) { return l.length > 0; });
+    if (lines.length === 0) return '';
+    if (lines.length === 1) return esc(lines[0]);
+    return '<ul style="margin:0;padding-left:16px;font-size:11px;">' + lines.map(function(l) {
+        return '<li>' + esc(l) + '</li>';
+    }).join('') + '</ul>';
 }
 
 // KB-Statistik für eine GP in bestimmten KWs
@@ -4972,7 +5070,7 @@ function renderKlassenbuch() {
                     + '<td>' + esc(cell.ce || '') + '</td>'
                     + '<td>' + esc(cell.le || '') + '</td>'
                     + '<td>' + esc(cell.thema || '') + '</td>'
-                    + '<td>' + esc(cell.kb_inhalt || '') + '</td>'
+                    + '<td>' + _formatKBInhalt(cell.kb_inhalt || '') + '</td>'
                     + '<td style="text-align:center;">' + statusIcon + '</td>'
                     + '</tr>';
             }
@@ -5048,7 +5146,7 @@ function exportKlassenbuchWord() {
                 doc += '<tr' + cls + '><td>' + ds2 + '</td><td>' + slotTimes[si] + '</td>'
                     + '<td>' + esc(cell.lehrer||'') + '</td><td>' + esc(cell.ce||'') + '</td>'
                     + '<td>' + esc(cell.le||'') + '</td><td>' + esc(cell.thema||'') + '</td>'
-                    + '<td>' + esc(cell.kb_inhalt||'') + '</td>'
+                    + '<td>' + _formatKBInhalt(cell.kb_inhalt||'') + '</td>'
                     + '<td style="text-align:center;">' + (cell.kb_bestaetigt ? '\u2713' : '') + '</td></tr>';
             }
         });

@@ -1285,12 +1285,6 @@ table.quali tbody tr:nth-child(even) td.quali-cell:not(.qualified) {
 <span id="kw-status-indicator" style="font-size:16px;margin-left:6px;" title="KW-Status">&#128308;</span>
 
       <select id="kw-quick-select" style="font-size:12px;padding:3px 6px;border-radius:8px;border:1px solid #e5e5ea;background:white;color:#1d1d1f;cursor:pointer;" onchange="kwJumpTo(this.value)"></select>
-      <span id="kw-status-indicator" style="font-size:16px;margin-left:4px;" title="KW-Status">&#128308;</span>
-      <span id="kw-status-indicator" style="font-size:16px;margin-left:4px;" title="KW-Status">&#128308;</span>
-      <span id="kw-status-indicator" style="font-size:16px;margin-left:4px;" title="KW-Status">&#128308;</span>
-      <span id="kw-status-indicator" style="font-size:16px;margin-left:4px;" title="KW-Status">&#128308;</span>
-      <span id="kw-status-indicator" style="font-size:16px;margin-left:4px;" title="KW-Status">&#128308;</span>
-      <span id="kw-status-indicator" style="font-size:16px;margin-left:4px;" title="KW-Status">&#128308;</span>
       <span id="kw-label">KW 1</span>
       <span id="kw-date-label" style="font-size:11px;color:#888;margin-left:4px;"></span>
       <button onclick="kwNav(1)">&#9654;</button>
@@ -1312,6 +1306,7 @@ table.quali tbody tr:nth-child(even) td.quali-cell:not(.qualified) {
         <option value="GP 05">GP 05</option>
         <option value="GP 06">GP 06</option>
         <option value="GP 07">GP 07</option>
+        <option value="GP 08">GP 08</option>
       </select>
       <button onclick="doPrint()" title="Druckdialog öffnen → Als PDF speichern wählen" style="background:#007aff;color:white;border:none;padding:5px 14px;border-radius:8px;cursor:pointer;font-size:12px;font-family:inherit;font-weight:500;">
         &#128196; Als PDF speichern
@@ -1611,347 +1606,6 @@ table.quali tbody tr:nth-child(even) td.quali-cell:not(.qualified) {
   </div>
 
 
-<!-- Qualifikationen View -->
-<div id="quali-view" class="view">
-  <h2 style="margin-bottom:8px;">&#127891; Lehrer-Qualifikationen-Matrix</h2>
-  <p style="margin-bottom:8px;font-size:11px;color:#666;">
-    <b>Klick</b> auf eine Zelle = Qualifikation an/abschalten.
-    Vorbesetzt aus alten Stundenplänen. Änderungen werden mit <b>Speichern</b> gesichert.
-  </p>
-
-  <!-- Filter Controls -->
-  <div id="quali-controls">
-    <input id="quali-search" type="text" placeholder="&#128269; Lehrkraft suchen..."
-           oninput="renderQual()">
-
-    <label>
-      <input id="quali-only-filled" type="checkbox" onchange="renderQual()">
-      Nur mit mind. 1 Qualifikation
-    </label>
-
-    <label>
-      CE-Filter:
-      <select id="quali-ce-filter" onchange="renderQual()">
-        <option value="alle">Alle CEs</option>
-        <option value="CE 01">CE 01</option>
-        <option value="CE 02">CE 02</option>
-        <option value="CE 03">CE 03</option>
-        <option value="CE 04">CE 04</option>
-        <option value="CE 05">CE 05</option>
-        <option value="CE 06">CE 06</option>
-        <option value="CE 07">CE 07</option>
-      </select>
-    </label>
-
-    <button onclick="qualiResetFilters()"
-            style="padding:4px 10px;border:1px solid #ccc;border-radius:4px;
-                   cursor:pointer;font-size:11px;background:#f5f5f5;">
-      &#x21BA; Filter zurücksetzen
-    </button>
-
-    <button onclick="qualiExportCSV()"
-            style="padding:4px 10px;border:none;border-radius:4px;
-                   cursor:pointer;font-size:11px;background:#2980b9;color:white;">
-      &#128190; CSV-Export
-    </button>
-  </div>
-
-  <!-- Stats bar -->
-  <div id="quali-stats"></div>
-
-  <!-- Matrix Table -->
-  <div class="quali-scroll">
-    <div id="quali-table-container">
-      <p style="padding:20px;color:#999;">Matrix wird geladen...</p>
-    </div>
-  </div>
-</div>
-
-
-<!-- Qualifikationen View -->
-<div id="quali-view" class="view">
-  <h2 style="margin-bottom:8px;">&#127891; Lehrer-Qualifikationen-Matrix</h2>
-  <p style="margin-bottom:8px;font-size:11px;color:#666;">
-    <b>Klick</b> auf eine Zelle = Qualifikation an/abschalten.
-    Vorbesetzt aus alten Stundenplänen. Änderungen werden mit <b>Speichern</b> gesichert.
-  </p>
-
-  <!-- Filter Controls -->
-  <div id="quali-controls">
-    <input id="quali-search" type="text" placeholder="&#128269; Lehrkraft suchen..."
-           oninput="renderQual()">
-
-    <label>
-      <input id="quali-only-filled" type="checkbox" onchange="renderQual()">
-      Nur mit mind. 1 Qualifikation
-    </label>
-
-    <label>
-      CE-Filter:
-      <select id="quali-ce-filter" onchange="renderQual()">
-        <option value="alle">Alle CEs</option>
-        <option value="CE 01">CE 01</option>
-        <option value="CE 02">CE 02</option>
-        <option value="CE 03">CE 03</option>
-        <option value="CE 04">CE 04</option>
-        <option value="CE 05">CE 05</option>
-        <option value="CE 06">CE 06</option>
-        <option value="CE 07">CE 07</option>
-      </select>
-    </label>
-
-    <button onclick="qualiResetFilters()"
-            style="padding:4px 10px;border:1px solid #ccc;border-radius:4px;
-                   cursor:pointer;font-size:11px;background:#f5f5f5;">
-      &#x21BA; Filter zurücksetzen
-    </button>
-
-    <button onclick="qualiExportCSV()"
-            style="padding:4px 10px;border:none;border-radius:4px;
-                   cursor:pointer;font-size:11px;background:#2980b9;color:white;">
-      &#128190; CSV-Export
-    </button>
-  </div>
-
-  <!-- Stats bar -->
-  <div id="quali-stats"></div>
-
-  <!-- Matrix Table -->
-  <div class="quali-scroll">
-    <div id="quali-table-container">
-      <p style="padding:20px;color:#999;">Matrix wird geladen...</p>
-    </div>
-  </div>
-</div>
-
-
-<!-- Qualifikationen View -->
-<div id="quali-view" class="view">
-  <h2 style="margin-bottom:8px;">&#127891; Lehrer-Qualifikationen-Matrix</h2>
-  <p style="margin-bottom:8px;font-size:11px;color:#666;">
-    <b>Klick</b> auf eine Zelle = Qualifikation an/abschalten.
-    Vorbesetzt aus alten Stundenplänen. Änderungen werden mit <b>Speichern</b> gesichert.
-  </p>
-
-  <!-- Filter Controls -->
-  <div id="quali-controls">
-    <input id="quali-search" type="text" placeholder="&#128269; Lehrkraft suchen..."
-           oninput="renderQual()">
-
-    <label>
-      <input id="quali-only-filled" type="checkbox" onchange="renderQual()">
-      Nur mit mind. 1 Qualifikation
-    </label>
-
-    <label>
-      CE-Filter:
-      <select id="quali-ce-filter" onchange="renderQual()">
-        <option value="alle">Alle CEs</option>
-        <option value="CE 01">CE 01</option>
-        <option value="CE 02">CE 02</option>
-        <option value="CE 03">CE 03</option>
-        <option value="CE 04">CE 04</option>
-        <option value="CE 05">CE 05</option>
-        <option value="CE 06">CE 06</option>
-        <option value="CE 07">CE 07</option>
-      </select>
-    </label>
-
-    <button onclick="qualiResetFilters()"
-            style="padding:4px 10px;border:1px solid #ccc;border-radius:4px;
-                   cursor:pointer;font-size:11px;background:#f5f5f5;">
-      &#x21BA; Filter zurücksetzen
-    </button>
-
-    <button onclick="qualiExportCSV()"
-            style="padding:4px 10px;border:none;border-radius:4px;
-                   cursor:pointer;font-size:11px;background:#2980b9;color:white;">
-      &#128190; CSV-Export
-    </button>
-  </div>
-
-  <!-- Stats bar -->
-  <div id="quali-stats"></div>
-
-  <!-- Matrix Table -->
-  <div class="quali-scroll">
-    <div id="quali-table-container">
-      <p style="padding:20px;color:#999;">Matrix wird geladen...</p>
-    </div>
-  </div>
-</div>
-
-
-<!-- Qualifikationen View -->
-<div id="quali-view" class="view">
-  <h2 style="margin-bottom:8px;">&#127891; Lehrer-Qualifikationen-Matrix</h2>
-  <p style="margin-bottom:8px;font-size:11px;color:#666;">
-    <b>Klick</b> auf eine Zelle = Qualifikation an/abschalten.
-    Vorbesetzt aus alten Stundenplänen. Änderungen werden mit <b>Speichern</b> gesichert.
-  </p>
-
-  <!-- Filter Controls -->
-  <div id="quali-controls">
-    <input id="quali-search" type="text" placeholder="&#128269; Lehrkraft suchen..."
-           oninput="renderQual()">
-
-    <label>
-      <input id="quali-only-filled" type="checkbox" onchange="renderQual()">
-      Nur mit mind. 1 Qualifikation
-    </label>
-
-    <label>
-      CE-Filter:
-      <select id="quali-ce-filter" onchange="renderQual()">
-        <option value="alle">Alle CEs</option>
-        <option value="CE 01">CE 01</option>
-        <option value="CE 02">CE 02</option>
-        <option value="CE 03">CE 03</option>
-        <option value="CE 04">CE 04</option>
-        <option value="CE 05">CE 05</option>
-        <option value="CE 06">CE 06</option>
-        <option value="CE 07">CE 07</option>
-      </select>
-    </label>
-
-    <button onclick="qualiResetFilters()"
-            style="padding:4px 10px;border:1px solid #ccc;border-radius:4px;
-                   cursor:pointer;font-size:11px;background:#f5f5f5;">
-      &#x21BA; Filter zurücksetzen
-    </button>
-
-    <button onclick="qualiExportCSV()"
-            style="padding:4px 10px;border:none;border-radius:4px;
-                   cursor:pointer;font-size:11px;background:#2980b9;color:white;">
-      &#128190; CSV-Export
-    </button>
-  </div>
-
-  <!-- Stats bar -->
-  <div id="quali-stats"></div>
-
-  <!-- Matrix Table -->
-  <div class="quali-scroll">
-    <div id="quali-table-container">
-      <p style="padding:20px;color:#999;">Matrix wird geladen...</p>
-    </div>
-  </div>
-</div>
-
-
-<!-- Qualifikationen View -->
-<div id="quali-view" class="view">
-  <h2 style="margin-bottom:8px;">&#127891; Lehrer-Qualifikationen-Matrix</h2>
-  <p style="margin-bottom:8px;font-size:11px;color:#666;">
-    <b>Klick</b> auf eine Zelle = Qualifikation an/abschalten.
-    Vorbesetzt aus alten Stundenplänen. Änderungen werden mit <b>Speichern</b> gesichert.
-  </p>
-
-  <!-- Filter Controls -->
-  <div id="quali-controls">
-    <input id="quali-search" type="text" placeholder="&#128269; Lehrkraft suchen..."
-           oninput="renderQual()">
-
-    <label>
-      <input id="quali-only-filled" type="checkbox" onchange="renderQual()">
-      Nur mit mind. 1 Qualifikation
-    </label>
-
-    <label>
-      CE-Filter:
-      <select id="quali-ce-filter" onchange="renderQual()">
-        <option value="alle">Alle CEs</option>
-        <option value="CE 01">CE 01</option>
-        <option value="CE 02">CE 02</option>
-        <option value="CE 03">CE 03</option>
-        <option value="CE 04">CE 04</option>
-        <option value="CE 05">CE 05</option>
-        <option value="CE 06">CE 06</option>
-        <option value="CE 07">CE 07</option>
-      </select>
-    </label>
-
-    <button onclick="qualiResetFilters()"
-            style="padding:4px 10px;border:1px solid #ccc;border-radius:4px;
-                   cursor:pointer;font-size:11px;background:#f5f5f5;">
-      &#x21BA; Filter zurücksetzen
-    </button>
-
-    <button onclick="qualiExportCSV()"
-            style="padding:4px 10px;border:none;border-radius:4px;
-                   cursor:pointer;font-size:11px;background:#2980b9;color:white;">
-      &#128190; CSV-Export
-    </button>
-  </div>
-
-  <!-- Stats bar -->
-  <div id="quali-stats"></div>
-
-  <!-- Matrix Table -->
-  <div class="quali-scroll">
-    <div id="quali-table-container">
-      <p style="padding:20px;color:#999;">Matrix wird geladen...</p>
-    </div>
-  </div>
-</div>
-
-
-<!-- Qualifikationen View -->
-<div id="quali-view" class="view">
-  <h2 style="margin-bottom:8px;">&#127891; Lehrer-Qualifikationen-Matrix</h2>
-  <p style="margin-bottom:8px;font-size:11px;color:#666;">
-    <b>Klick</b> auf eine Zelle = Qualifikation an/abschalten.
-    Vorbesetzt aus alten Stundenplänen. Änderungen werden mit <b>Speichern</b> gesichert.
-  </p>
-
-  <!-- Filter Controls -->
-  <div id="quali-controls">
-    <input id="quali-search" type="text" placeholder="&#128269; Lehrkraft suchen..."
-           oninput="renderQual()">
-
-    <label>
-      <input id="quali-only-filled" type="checkbox" onchange="renderQual()">
-      Nur mit mind. 1 Qualifikation
-    </label>
-
-    <label>
-      CE-Filter:
-      <select id="quali-ce-filter" onchange="renderQual()">
-        <option value="alle">Alle CEs</option>
-        <option value="CE 01">CE 01</option>
-        <option value="CE 02">CE 02</option>
-        <option value="CE 03">CE 03</option>
-        <option value="CE 04">CE 04</option>
-        <option value="CE 05">CE 05</option>
-        <option value="CE 06">CE 06</option>
-        <option value="CE 07">CE 07</option>
-      </select>
-    </label>
-
-    <button onclick="qualiResetFilters()"
-            style="padding:4px 10px;border:1px solid #ccc;border-radius:4px;
-                   cursor:pointer;font-size:11px;background:#f5f5f5;">
-      &#x21BA; Filter zurücksetzen
-    </button>
-
-    <button onclick="qualiExportCSV()"
-            style="padding:4px 10px;border:none;border-radius:4px;
-                   cursor:pointer;font-size:11px;background:#2980b9;color:white;">
-      &#128190; CSV-Export
-    </button>
-  </div>
-
-  <!-- Stats bar -->
-  <div id="quali-stats"></div>
-
-  <!-- Matrix Table -->
-  <div class="quali-scroll">
-    <div id="quali-table-container">
-      <p style="padding:20px;color:#999;">Matrix wird geladen...</p>
-    </div>
-  </div>
-</div>
-
 </div><!-- /app -->
 
 
@@ -2038,311 +1692,6 @@ table.quali tbody tr:nth-child(even) td.quali-cell:not(.qualified) {
 </div>
 
 
-<!-- KW Kopieren Modal -->
-<div class="modal-overlay" id="kopieren-modal">
-  <div class="modal" style="min-width:360px;max-width:460px;">
-    <h3>&#128203; Kalenderwoche kopieren</h3>
-
-    <label style="font-size:12px;font-weight:bold;display:block;margin-bottom:3px;">
-      Quell-KW (aktuell):
-    </label>
-    <input type="text" id="kopieren-quelle" readonly
-           style="background:#f0f0f0;color:#555;margin-bottom:10px;">
-
-    <label style="font-size:12px;font-weight:bold;display:block;margin-bottom:3px;">
-      Ziel-KW:
-    </label>
-    <select id="kopieren-ziel" onchange="kopierenCheckZiel()"
-            style="margin-bottom:10px;"></select>
-
-    <div id="kopieren-overwrite-warn" class="warn-overwrite">
-      &#9888;&#65039; Ziel-KW hat bereits Eintr&#228;ge. Vorhandene Daten werden &#220;BERSCHRIEBEN.
-    </div>
-
-    <label style="font-size:12px;font-weight:bold;display:block;margin-bottom:6px;">
-      Was soll kopiert werden?
-    </label>
-    <div class="option-row">
-      <label>
-        <input type="checkbox" id="kop-opt-lehrer" checked>
-        Lehrkr&#228;fte &#252;bertragen
-      </label>
-      <label>
-        <input type="checkbox" id="kop-opt-le" checked>
-        Lerneinheiten (LE + CE) &#252;bertragen
-      </label>
-      <label>
-        <input type="checkbox" id="kop-opt-thema">
-        Themen &#252;bertragen
-      </label>
-      <label>
-        <input type="checkbox" id="kop-opt-abw">
-        Abwesenheiten &#252;bertragen
-      </label>
-    </div>
-
-    <div class="btn-row">
-      <button class="btn-cancel" onclick="closeKopierenModal()">Abbrechen</button>
-      <button class="btn-ok" onclick="doKopierenKW()">&#10003; Kopieren</button>
-    </div>
-  </div>
-</div>
-
-
-<!-- KW Kopieren Modal -->
-<div class="modal-overlay" id="kopieren-modal">
-  <div class="modal" style="min-width:360px;max-width:460px;">
-    <h3>&#128203; Kalenderwoche kopieren</h3>
-
-    <label style="font-size:12px;font-weight:bold;display:block;margin-bottom:3px;">
-      Quell-KW (aktuell):
-    </label>
-    <input type="text" id="kopieren-quelle" readonly
-           style="background:#f0f0f0;color:#555;margin-bottom:10px;">
-
-    <label style="font-size:12px;font-weight:bold;display:block;margin-bottom:3px;">
-      Ziel-KW:
-    </label>
-    <select id="kopieren-ziel" onchange="kopierenCheckZiel()"
-            style="margin-bottom:10px;"></select>
-
-    <div id="kopieren-overwrite-warn" class="warn-overwrite">
-      &#9888;&#65039; Ziel-KW hat bereits Eintr&#228;ge. Vorhandene Daten werden &#220;BERSCHRIEBEN.
-    </div>
-
-    <label style="font-size:12px;font-weight:bold;display:block;margin-bottom:6px;">
-      Was soll kopiert werden?
-    </label>
-    <div class="option-row">
-      <label>
-        <input type="checkbox" id="kop-opt-lehrer" checked>
-        Lehrkr&#228;fte &#252;bertragen
-      </label>
-      <label>
-        <input type="checkbox" id="kop-opt-le" checked>
-        Lerneinheiten (LE + CE) &#252;bertragen
-      </label>
-      <label>
-        <input type="checkbox" id="kop-opt-thema">
-        Themen &#252;bertragen
-      </label>
-      <label>
-        <input type="checkbox" id="kop-opt-abw">
-        Abwesenheiten &#252;bertragen
-      </label>
-    </div>
-
-    <div class="btn-row">
-      <button class="btn-cancel" onclick="closeKopierenModal()">Abbrechen</button>
-      <button class="btn-ok" onclick="doKopierenKW()">&#10003; Kopieren</button>
-    </div>
-  </div>
-</div>
-
-
-<!-- KW Kopieren Modal -->
-<div class="modal-overlay" id="kopieren-modal">
-  <div class="modal" style="min-width:360px;max-width:460px;">
-    <h3>&#128203; Kalenderwoche kopieren</h3>
-
-    <label style="font-size:12px;font-weight:bold;display:block;margin-bottom:3px;">
-      Quell-KW (aktuell):
-    </label>
-    <input type="text" id="kopieren-quelle" readonly
-           style="background:#f0f0f0;color:#555;margin-bottom:10px;">
-
-    <label style="font-size:12px;font-weight:bold;display:block;margin-bottom:3px;">
-      Ziel-KW:
-    </label>
-    <select id="kopieren-ziel" onchange="kopierenCheckZiel()"
-            style="margin-bottom:10px;"></select>
-
-    <div id="kopieren-overwrite-warn" class="warn-overwrite">
-      &#9888;&#65039; Ziel-KW hat bereits Eintr&#228;ge. Vorhandene Daten werden &#220;BERSCHRIEBEN.
-    </div>
-
-    <label style="font-size:12px;font-weight:bold;display:block;margin-bottom:6px;">
-      Was soll kopiert werden?
-    </label>
-    <div class="option-row">
-      <label>
-        <input type="checkbox" id="kop-opt-lehrer" checked>
-        Lehrkr&#228;fte &#252;bertragen
-      </label>
-      <label>
-        <input type="checkbox" id="kop-opt-le" checked>
-        Lerneinheiten (LE + CE) &#252;bertragen
-      </label>
-      <label>
-        <input type="checkbox" id="kop-opt-thema">
-        Themen &#252;bertragen
-      </label>
-      <label>
-        <input type="checkbox" id="kop-opt-abw">
-        Abwesenheiten &#252;bertragen
-      </label>
-    </div>
-
-    <div class="btn-row">
-      <button class="btn-cancel" onclick="closeKopierenModal()">Abbrechen</button>
-      <button class="btn-ok" onclick="doKopierenKW()">&#10003; Kopieren</button>
-    </div>
-  </div>
-</div>
-
-
-<!-- KW Kopieren Modal -->
-<div class="modal-overlay" id="kopieren-modal">
-  <div class="modal" style="min-width:360px;max-width:460px;">
-    <h3>&#128203; Kalenderwoche kopieren</h3>
-
-    <label style="font-size:12px;font-weight:bold;display:block;margin-bottom:3px;">
-      Quell-KW (aktuell):
-    </label>
-    <input type="text" id="kopieren-quelle" readonly
-           style="background:#f0f0f0;color:#555;margin-bottom:10px;">
-
-    <label style="font-size:12px;font-weight:bold;display:block;margin-bottom:3px;">
-      Ziel-KW:
-    </label>
-    <select id="kopieren-ziel" onchange="kopierenCheckZiel()"
-            style="margin-bottom:10px;"></select>
-
-    <div id="kopieren-overwrite-warn" class="warn-overwrite">
-      &#9888;&#65039; Ziel-KW hat bereits Eintr&#228;ge. Vorhandene Daten werden &#220;BERSCHRIEBEN.
-    </div>
-
-    <label style="font-size:12px;font-weight:bold;display:block;margin-bottom:6px;">
-      Was soll kopiert werden?
-    </label>
-    <div class="option-row">
-      <label>
-        <input type="checkbox" id="kop-opt-lehrer" checked>
-        Lehrkr&#228;fte &#252;bertragen
-      </label>
-      <label>
-        <input type="checkbox" id="kop-opt-le" checked>
-        Lerneinheiten (LE + CE) &#252;bertragen
-      </label>
-      <label>
-        <input type="checkbox" id="kop-opt-thema">
-        Themen &#252;bertragen
-      </label>
-      <label>
-        <input type="checkbox" id="kop-opt-abw">
-        Abwesenheiten &#252;bertragen
-      </label>
-    </div>
-
-    <div class="btn-row">
-      <button class="btn-cancel" onclick="closeKopierenModal()">Abbrechen</button>
-      <button class="btn-ok" onclick="doKopierenKW()">&#10003; Kopieren</button>
-    </div>
-  </div>
-</div>
-
-
-<!-- KW Kopieren Modal -->
-<div class="modal-overlay" id="kopieren-modal">
-  <div class="modal" style="min-width:360px;max-width:460px;">
-    <h3>&#128203; Kalenderwoche kopieren</h3>
-
-    <label style="font-size:12px;font-weight:bold;display:block;margin-bottom:3px;">
-      Quell-KW (aktuell):
-    </label>
-    <input type="text" id="kopieren-quelle" readonly
-           style="background:#f0f0f0;color:#555;margin-bottom:10px;">
-
-    <label style="font-size:12px;font-weight:bold;display:block;margin-bottom:3px;">
-      Ziel-KW:
-    </label>
-    <select id="kopieren-ziel" onchange="kopierenCheckZiel()"
-            style="margin-bottom:10px;"></select>
-
-    <div id="kopieren-overwrite-warn" class="warn-overwrite">
-      &#9888;&#65039; Ziel-KW hat bereits Eintr&#228;ge. Vorhandene Daten werden &#220;BERSCHRIEBEN.
-    </div>
-
-    <label style="font-size:12px;font-weight:bold;display:block;margin-bottom:6px;">
-      Was soll kopiert werden?
-    </label>
-    <div class="option-row">
-      <label>
-        <input type="checkbox" id="kop-opt-lehrer" checked>
-        Lehrkr&#228;fte &#252;bertragen
-      </label>
-      <label>
-        <input type="checkbox" id="kop-opt-le" checked>
-        Lerneinheiten (LE + CE) &#252;bertragen
-      </label>
-      <label>
-        <input type="checkbox" id="kop-opt-thema">
-        Themen &#252;bertragen
-      </label>
-      <label>
-        <input type="checkbox" id="kop-opt-abw">
-        Abwesenheiten &#252;bertragen
-      </label>
-    </div>
-
-    <div class="btn-row">
-      <button class="btn-cancel" onclick="closeKopierenModal()">Abbrechen</button>
-      <button class="btn-ok" onclick="doKopierenKW()">&#10003; Kopieren</button>
-    </div>
-  </div>
-</div>
-
-
-<!-- KW Kopieren Modal -->
-<div class="modal-overlay" id="kopieren-modal">
-  <div class="modal" style="min-width:360px;max-width:460px;">
-    <h3>&#128203; Kalenderwoche kopieren</h3>
-
-    <label style="font-size:12px;font-weight:bold;display:block;margin-bottom:3px;">
-      Quell-KW (aktuell):
-    </label>
-    <input type="text" id="kopieren-quelle" readonly
-           style="background:#f0f0f0;color:#555;margin-bottom:10px;">
-
-    <label style="font-size:12px;font-weight:bold;display:block;margin-bottom:3px;">
-      Ziel-KW:
-    </label>
-    <select id="kopieren-ziel" onchange="kopierenCheckZiel()"
-            style="margin-bottom:10px;"></select>
-
-    <div id="kopieren-overwrite-warn" class="warn-overwrite">
-      &#9888;&#65039; Ziel-KW hat bereits Eintr&#228;ge. Vorhandene Daten werden &#220;BERSCHRIEBEN.
-    </div>
-
-    <label style="font-size:12px;font-weight:bold;display:block;margin-bottom:6px;">
-      Was soll kopiert werden?
-    </label>
-    <div class="option-row">
-      <label>
-        <input type="checkbox" id="kop-opt-lehrer" checked>
-        Lehrkr&#228;fte &#252;bertragen
-      </label>
-      <label>
-        <input type="checkbox" id="kop-opt-le" checked>
-        Lerneinheiten (LE + CE) &#252;bertragen
-      </label>
-      <label>
-        <input type="checkbox" id="kop-opt-thema">
-        Themen &#252;bertragen
-      </label>
-      <label>
-        <input type="checkbox" id="kop-opt-abw">
-        Abwesenheiten &#252;bertragen
-      </label>
-    </div>
-
-    <div class="btn-row">
-      <button class="btn-cancel" onclick="closeKopierenModal()">Abbrechen</button>
-      <button class="btn-ok" onclick="doKopierenKW()">&#10003; Kopieren</button>
-    </div>
-  </div>
-</div>
-
 <!-- LE Edit Modal -->
 <div class="modal-overlay" id="le-modal">
   <div class="modal">
@@ -2356,7 +1705,6 @@ table.quali tbody tr:nth-child(even) td.quali-cell:not(.qualified) {
       <select id="le-typ-select" style="font-size:11px;padding:3px;width:100%;margin-top:3px;">
         <option value="">— Normal —</option>
         <option value="sol">&#128993; SOL / Online</option>
-        <option value="orga">&#128992; Orga (Blockstart)</option>
         <option value="ausflug">&#128994; Ausflug</option>
         <option value="blockstart">&#128992; Blockstart / Blockende</option>
         <option value="lernstand">&#128309; Lernstandskontrolle</option>
@@ -2388,6 +1736,7 @@ table.quali tbody tr:nth-child(even) td.quali-cell:not(.qualified) {
       <option value="GP 05">GP 05</option>
       <option value="GP 06">GP 06</option>
       <option value="GP 07">GP 07</option>
+      <option value="GP 08">GP 08</option>
     </select>
     <span style="font-size:12px;color:#666;">von</span>
     <select id="kb-kw-von" onchange="renderKlassenbuch()" style="padding:5px;font-size:12px;border:1px solid #ccc;border-radius:6px;"></select>
@@ -3914,9 +3263,16 @@ function renderLV() {
     const TYP_CLR  = { fest:'#d5e8d4', honorar:'#fff2cc',    sonstige:'#fce4d6',    inaktiv:'#e0e0e0' };
     const TYP_NEXT = { fest:'honorar', honorar:'sonstige',    sonstige:'inaktiv',    inaktiv:'fest' };
 
+    // SprachAk sicherstellen
+    if (!state.lehrer_list.includes('SprachAk') && !state.lehrer_list.includes('SprachAk.')) {
+        state.lehrer_list.push('SprachAk');
+    }
+    const _isSA = n => n.trim().toLowerCase().includes('sprachak');
     const TYP_SORT = { fest:0, honorar:1, sonstige:2, inaktiv:3 };
     const list = [...state.lehrer_list].sort((a, b) => {
-        const ta = TYP_SORT[getLehrerKat(a)] ?? 2, tb = TYP_SORT[getLehrerKat(b)] ?? 2;
+        const saA = _isSA(a) ? 0.5 : 0, saB = _isSA(b) ? 0.5 : 0;
+        const ta = saA || (TYP_SORT[getLehrerKat(a)] ?? 2);
+        const tb = saB || (TYP_SORT[getLehrerKat(b)] ?? 2);
         if (ta !== tb) return ta - tb;
         return (freq[b]||0) - (freq[a]||0);
     });
@@ -4168,7 +3524,7 @@ function buildKWTable(kwName, gpData) {
             const ftHdr = isFt ? ' feiertag-header' : '';
             if (isFt) {
                 const ftName = (typeof getFeiertagName === 'function') ? getFeiertagName(kwName, d) : '';
-                html += `<td colspan="2" class="${ftHdr}" style="background:#ffcdd2;color:#c62828;">`
+                html += `<td colspan="2" class="${ftHdr}">`
                       + `${DAY_NAMES_JS[d]}<br><span style="font-size:9px;font-weight:normal;">${ftName || 'Feiertag'}</span>`
                       + `<button class="btn-feiertag-toggle active" `
                       + `onclick="toggleFeiertag('${kwName}','${d}')" `
@@ -4569,7 +3925,7 @@ function _getLehrerStundenKW_AP(kw) {
     const kwGPs = state.kw_data[kw] || {};
     const counts = {};
     state.lehrer_list.forEach(function(l){ counts[l] = 0; });
-    for (let gpNum = 1; gpNum <= 7; gpNum++) {
+    for (let gpNum = 1; gpNum <= 8; gpNum++) {
         const gp = 'GP ' + String(gpNum).padStart(2,'0');
         const slots = ((kwGPs[gp] || {}).slots || []);
         for (let si = 0; si < 4; si++) {
@@ -4589,7 +3945,7 @@ function _getLehrerInSlot_AP(kw, slotIdx, day) {
     // Returns Set of teachers already booked in this slot+day across all GPs
     const kwGPs = state.kw_data[kw] || {};
     const booked = new Set();
-    for (let gpNum = 1; gpNum <= 7; gpNum++) {
+    for (let gpNum = 1; gpNum <= 8; gpNum++) {
         const gp = 'GP ' + String(gpNum).padStart(2,'0');
         const slots = ((kwGPs[gp] || {}).slots || []);
         const lehrer = ((slots[slotIdx] || {})[day] || {}).lehrer;
@@ -4640,7 +3996,7 @@ function runAutoplan() {
     const stundenKW = _getLehrerStundenKW_AP(kw);
     const kwGPs     = state.kw_data[kw] || {};
 
-    for (let gpNum = 1; gpNum <= 7; gpNum++) {
+    for (let gpNum = 1; gpNum <= 8; gpNum++) {
         const gp     = 'GP ' + String(gpNum).padStart(2,'0');
         // Nur GPs im Theorieblock einplanen (Praxis-GPs überspringen)
         if (typeof isGPInTheorie === 'function' && !isGPInTheorie(gp, kw)) continue;
@@ -5182,7 +4538,7 @@ function exportKlassenbuchWord() {
 
     var kwVon = kwList[0], kwBis = kwList[kwList.length - 1];
     var slotTimes = ['08:45\u201310:15', '10:30\u201312:00', '12:30\u201314:00', '14:15\u201315:45'];
-    var _SA_EXPORT = ['14:00\u201315:30', '16:00\u201317:30'];
+    var _SA_EXPORT = ['14:00 \u2013 15:30', '16:00 \u2013 17:30'];
 
     // ── Daten sammeln und nach LE gruppieren ──
     var leMap = {};  // leCode → { bezeichnung, ce, lehrer: Set, slots: [{kw,day,si,cell}], ue }
@@ -6678,7 +6034,7 @@ function renderLehrerExport() {
 
     KW_NAMES.forEach((kw, kwIdx) => {
         const kwGPs = state.kw_data[kw] || {};
-        for (let gpNum = 1; gpNum <= 7; gpNum++) {
+        for (let gpNum = 1; gpNum <= 8; gpNum++) {
             const gp = 'GP ' + String(gpNum).padStart(2, '0');
             const slots = ((kwGPs[gp] || {}).slots || []);
             slots.forEach((slot, si) => {
@@ -6801,7 +6157,7 @@ function lehrerKuerzel(name) {
 function getKWStatusEmoji(kw) {
     const kwGPs = state.kw_data[kw] || {};
     let anyLehrerEmpty = false, anyLEEmpty = false;
-    for (let gpNum = 1; gpNum <= 7; gpNum++) {
+    for (let gpNum = 1; gpNum <= 8; gpNum++) {
         const gp = 'GP ' + String(gpNum).padStart(2,'0');
         const slots = ((kwGPs[gp] || {}).slots || []);
         for (let si = 0; si < 4; si++) {
@@ -6833,7 +6189,7 @@ function buildMonatKachel(kw) {
     dayLabels.forEach(d => { html += '<th>' + d + '</th>'; });
     html += '</tr></thead><tbody>';
 
-    for (let gpNum = 1; gpNum <= 7; gpNum++) {
+    for (let gpNum = 1; gpNum <= 8; gpNum++) {
         const gp = 'GP ' + String(gpNum).padStart(2,'0');
         const gpData = kwGPs[gp] || {};
         const slots = gpData.slots || [{},{},{},{}];

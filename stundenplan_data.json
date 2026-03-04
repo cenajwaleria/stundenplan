@@ -25415,7 +25415,23 @@
   "notizen": {},
   "lehrer_quali": {},
   "lehrer_abwesenheit": [],
-  "feiertage": {},
+  "feiertage": {
+    "KW 1": [
+      "do"
+    ],
+    "KW 14": [
+      "fr"
+    ],
+    "KW 15": [
+      "mo"
+    ],
+    "KW 18": [
+      "fr"
+    ],
+    "KW 20": [
+      "do"
+    ]
+  },
   "theo": {},
   "currentKW": "KW 10"
 }

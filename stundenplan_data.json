@@ -13572,9 +13572,10 @@
           {
             "mo": {
               "lehrer": "SprachAk.",
-              "ce": "CE: 11",
+              "ce": "CE 11",
               "le": "LE: 35",
-              "thema": "Ende"
+              "thema": "Demenz",
+              "typ": "hop"
             },
             "di": {
               "lehrer": "SprachAk.",

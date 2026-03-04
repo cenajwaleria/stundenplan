@@ -13657,9 +13657,10 @@
           {
             "mo": {
               "lehrer": "W. Cenaj",
-              "ce": "CE: 02",
+              "ce": "CE 02",
               "le": "LE: 06",
-              "thema": "Mobilität unterstützen"
+              "thema": "Mobilität unterstützen",
+              "typ": "hop"
             },
             "di": {
               "lehrer": "N. Heinrichs",

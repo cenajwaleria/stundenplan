@@ -4186,20 +4186,29 @@ function buildKWTable(kwName, gpData) {
             const slotNum = si + 1;
             const sd = slots[si] || {};
 
-            // SprachAk-Erkennung: Prüfe ob an einem Tag "SprachAk" eingetragen ist
-            const SPRACHAK_TIMES = ['', '', '14:00 \u2013 15:30', '16:00 \u2013 17:30'];
-            const DAY_ABBR = {mo:'Mo',di:'Di',mi:'Mi',do:'Do',fr:'Fr'};
-            let sprachAkDays = [];
+            // SprachAk-Erkennung: Prüfe ob dieser Slot SprachAk enthält
+            // Dynamisch: 1. SprachAk-Slot des Tages → 14:00–15:30, 2. → 16:00–17:30
+            const _SA_TIMES = ['14:00 \u2013 15:30', '16:00 \u2013 17:30'];
+            let hasSprachAk = false;
             DAYS_JS.forEach(day => {
                 const sc = sd[day] || {};
-                if ((sc.lehrer || '').trim().toLowerCase() === 'sprachak') {
-                    sprachAkDays.push(day);
+                if ((sc.lehrer || '').trim().toLowerCase().includes('sprachak')) {
+                    hasSprachAk = true;
                 }
             });
-            // Slot-Label: bei SprachAk komplett überschreiben
+            // Welcher SprachAk-Block ist dieser Slot? (0=erster, 1=zweiter)
+            let saBlockNr = -1;
+            if (hasSprachAk) {
+                let cnt = 0;
+                for (let sj = 0; sj <= si; sj++) {
+                    const sjd = slots[sj] || {};
+                    const anyDay = DAYS_JS.some(day => (sjd[day]||{}).lehrer && (sjd[day]||{}).lehrer.trim().toLowerCase().includes('sprachak'));
+                    if (anyDay) { if (sj === si) saBlockNr = cnt; cnt++; }
+                }
+            }
             let slotLabel = SLOT_LABELS[si];
-            if (sprachAkDays.length > 0 && SPRACHAK_TIMES[si]) {
-                slotLabel = SPRACHAK_TIMES[si];
+            if (saBlockNr >= 0 && saBlockNr < _SA_TIMES.length) {
+                slotLabel = _SA_TIMES[saBlockNr];
             }
 
             // Lehrer row
@@ -5173,7 +5182,7 @@ function exportKlassenbuchWord() {
 
     var kwVon = kwList[0], kwBis = kwList[kwList.length - 1];
     var slotTimes = ['08:45\u201310:15', '10:30\u201312:00', '12:30\u201314:00', '14:15\u201315:45'];
-    var SPRACHAK_TIMES = ['', '', '14:00\u201315:30', '16:00\u201317:30'];
+    var _SA_EXPORT = ['14:00\u201315:30', '16:00\u201317:30'];
 
     // ── Daten sammeln und nach LE gruppieren ──
     var leMap = {};  // leCode → { bezeichnung, ce, lehrer: Set, slots: [{kw,day,si,cell}], ue }
@@ -5200,7 +5209,14 @@ function exportKlassenbuchWord() {
                     ? DAY_NAMES_JS[day] + ' ' + String(dayDate.getDate()).padStart(2,'0') + '.' + String(dayDate.getMonth()+1).padStart(2,'0') + '.'
                     : DAY_NAMES_JS[day];
                 var zeit = slotTimes[si];
-                if ((cell.lehrer||'').trim().toLowerCase() === 'sprachak' && SPRACHAK_TIMES[si]) zeit = SPRACHAK_TIMES[si];
+                // SprachAk: dynamisch 1./2. Block ermitteln
+                if ((cell.lehrer||'').trim().toLowerCase().includes('sprachak')) {
+                    var saCnt = 0;
+                    for (var sj = 0; sj < si; sj++) {
+                        if (((slots[sj]||{})[day]||{}).lehrer && ((slots[sj]||{})[day]||{}).lehrer.trim().toLowerCase().includes('sprachak')) saCnt++;
+                    }
+                    if (saCnt < _SA_EXPORT.length) zeit = _SA_EXPORT[saCnt];
+                }
                 entry.slots.push({ kw:kw, day:day, si:si, cell:cell, dateStr:dateStr, zeit:zeit });
                 entry.ue += 2;  // 1 Slot = 2 UE (je 45 min)
             }

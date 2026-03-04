@@ -2563,9 +2563,9 @@ function _applyLoadedData(d) {
     if (d.currentKW && KW_NAMES.includes(d.currentKW)) state.currentKW = d.currentKW;
 }
 
-// ── Laden: GitHub → Server → localStorage ────────────────────────────────────
+// ── Laden: GitHub → Server → GitHub Pages (öffentlich) → localStorage ────────
 function loadFromStorage() {
-    // 1. GitHub versuchen
+    // 1. GitHub API mit Token versuchen (Bearbeitungsmodus)
     if (_isGitHubConfigured()) {
         try {
             var d = _githubLoadData();
@@ -2598,7 +2598,26 @@ function loadFromStorage() {
         }
     } catch(e) { /* kein Server */ }
 
-    // 3. localStorage Fallback
+    // 3. GitHub Pages: Datei direkt laden (öffentlicher Lesemodus, kein Token nötig)
+    try {
+        var xhrGP = new XMLHttpRequest();
+        xhrGP.open('GET', 'stundenplan_data.json?t=' + Date.now(), false);
+        xhrGP.send();
+        if (xhrGP.status === 200) {
+            var dGP = JSON.parse(xhrGP.responseText);
+            STORAGE_MODE = 'local';  // Kann lesen, aber nur lokal speichern
+            if (dGP && Object.keys(dGP).length > 0) {
+                _applyLoadedData(dGP);
+                console.log('[Stundenplan] Daten von GitHub Pages geladen (Lesemodus)');
+                // Lokale KB-Einträge aus localStorage nachladen und mergen
+                _mergeLocalKBEntries();
+            }
+            _updateConnectionStatus();
+            return;
+        }
+    } catch(e) { console.warn('[Stundenplan] GitHub Pages laden fehlgeschlagen:', e.message); }
+
+    // 4. localStorage Fallback
     STORAGE_MODE = 'local';
     try {
         var saved = localStorage.getItem('stundenplan_data');
@@ -2614,6 +2633,35 @@ function loadFromStorage() {
         }
     } catch(e) { console.warn('localStorage load failed', e); }
     _updateConnectionStatus();
+}
+
+// Lokale KB-Einträge (Klassenbuch) aus localStorage in den state mergen
+function _mergeLocalKBEntries() {
+    try {
+        var localKB = localStorage.getItem('stundenplan_kb_local');
+        if (!localKB) return;
+        var kb = JSON.parse(localKB);
+        Object.keys(kb).forEach(function(kw) {
+            Object.keys(kb[kw]).forEach(function(gp) {
+                var slots = kb[kw][gp];
+                Object.keys(slots).forEach(function(si) {
+                    Object.keys(slots[si]).forEach(function(day) {
+                        var entry = slots[si][day];
+                        // In state einfügen
+                        if (!state.kw_data[kw]) state.kw_data[kw] = {};
+                        if (!state.kw_data[kw][gp]) state.kw_data[kw][gp] = { slots: [{},{},{},{}] };
+                        var stateSlots = state.kw_data[kw][gp].slots;
+                        var idx = parseInt(si);
+                        if (!stateSlots[idx]) stateSlots[idx] = {};
+                        if (!stateSlots[idx][day]) stateSlots[idx][day] = {};
+                        if (entry.kb_inhalt) stateSlots[idx][day].kb_inhalt = entry.kb_inhalt;
+                        if (entry.kb_bestaetigt) stateSlots[idx][day].kb_bestaetigt = entry.kb_bestaetigt;
+                    });
+                });
+            });
+        });
+        console.log('[Stundenplan] Lokale KB-Einträge gemergt');
+    } catch(e) { console.warn('KB merge failed', e); }
 }
 
 function _updateConnectionStatus() {
@@ -4709,7 +4757,7 @@ function getKBCell(kw, gp, slotIdx, day) {
 function openKBModal(kw, gp, slotIdx, day) {
     var cell = getKBCell(kw, gp, slotIdx, day);
     _kbModalData = { kw: kw, gp: gp, slotIdx: slotIdx, day: day };
-    var ro = isReadonly();
+    // Klassenbuch ist IMMER bearbeitbar (auch im Lesemodus)
     var slotTimes = ['08:45\u201310:15', '10:30\u201312:00', '12:30\u201314:00', '14:15\u201315:45'];
     var dayLabel = DAY_NAMES_JS[day] || day;
     var leLabel = cell.le || '';
@@ -4722,12 +4770,12 @@ function openKBModal(kw, gp, slotIdx, day) {
         + '<div class="kb-info"><span>LE:</span> ' + esc(leLabel) + (leLookup.bezeichnung ? ' \u2014 ' + esc(leLookup.bezeichnung) : '') + '</div>'
         + '<div class="kb-info"><span>Thema:</span> ' + esc(cell.thema || '\u2013') + '</div>'
         + '<label style="font-size:12px;font-weight:600;display:block;margin:12px 0 4px;">Tats\u00e4chlicher Inhalt:</label>'
-        + '<textarea id="kb-inhalt-input"' + (ro ? ' disabled' : '') + ' placeholder="' + (ro ? 'Nur mit Login bearbeitbar' : 'Was wurde tats\u00e4chlich unterrichtet?') + '">' + esc(cell.kb_inhalt || '') + '</textarea>'
-        + '<label style="font-size:12px;margin-top:8px;display:flex;align-items:center;gap:6px;cursor:' + (ro ? 'default' : 'pointer') + ';">'
-        + '<input type="checkbox" id="kb-bestaetigt-input"' + (cell.kb_bestaetigt ? ' checked' : '') + (ro ? ' disabled' : '') + '> Eintrag best\u00e4tigt</label>'
+        + '<textarea id="kb-inhalt-input" placeholder="Was wurde tats\u00e4chlich unterrichtet?">' + esc(cell.kb_inhalt || '') + '</textarea>'
+        + '<label style="font-size:12px;margin-top:8px;display:flex;align-items:center;gap:6px;cursor:pointer;">'
+        + '<input type="checkbox" id="kb-bestaetigt-input"' + (cell.kb_bestaetigt ? ' checked' : '') + '> Eintrag best\u00e4tigt</label>'
         + '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;">'
-        + '<button onclick="closeKBModal()" style="padding:8px 16px;border:1px solid #ddd;background:white;border-radius:8px;cursor:pointer;font-size:13px;">' + (ro ? 'Schlie\u00dfen' : 'Abbrechen') + '</button>'
-        + (ro ? '' : '<button onclick="saveKBModal()" style="padding:8px 16px;border:none;background:#007aff;color:white;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;">Speichern</button>')
+        + '<button onclick="closeKBModal()" style="padding:8px 16px;border:1px solid #ddd;background:white;border-radius:8px;cursor:pointer;font-size:13px;">Abbrechen</button>'
+        + '<button onclick="saveKBModal()" style="padding:8px 16px;border:none;background:#007aff;color:white;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;">Speichern</button>'
         + '</div>';
 
     document.getElementById('kb-modal-overlay').classList.add('active');
@@ -4739,7 +4787,8 @@ function closeKBModal() {
 }
 
 function saveKBModal() {
-    if (isReadonly() || !_kbModalData) return;
+    // Klassenbuch ist IMMER bearbeitbar (auch im Lesemodus)
+    if (!_kbModalData) return;
     var d = _kbModalData;
     var inhalt = document.getElementById('kb-inhalt-input').value;
     var bestaetigt = document.getElementById('kb-bestaetigt-input').checked;
@@ -4752,9 +4801,35 @@ function saveKBModal() {
     if (!slots[d.slotIdx][d.day]) slots[d.slotIdx][d.day] = {};
     slots[d.slotIdx][d.day].kb_inhalt = inhalt;
     slots[d.slotIdx][d.day].kb_bestaetigt = bestaetigt;
-    markDirty();
+
+    if (STORAGE_MODE === 'github') {
+        // Mit Token: normal auf GitHub speichern
+        markDirty();
+    } else {
+        // Ohne Token (Lesemodus): KB-Einträge separat in localStorage speichern
+        _saveLocalKBEntry(d.kw, d.gp, d.slotIdx, d.day, inhalt, bestaetigt);
+    }
     renderKW();
     closeKBModal();
+}
+
+// KB-Eintrag lokal speichern (für Lehrer ohne Token)
+function _saveLocalKBEntry(kw, gp, slotIdx, day, inhalt, bestaetigt) {
+    try {
+        var kb = JSON.parse(localStorage.getItem('stundenplan_kb_local') || '{}');
+        if (!kb[kw]) kb[kw] = {};
+        if (!kb[kw][gp]) kb[kw][gp] = {};
+        if (!kb[kw][gp][slotIdx]) kb[kw][gp][slotIdx] = {};
+        kb[kw][gp][slotIdx][day] = { kb_inhalt: inhalt, kb_bestaetigt: bestaetigt };
+        localStorage.setItem('stundenplan_kb_local', JSON.stringify(kb));
+        // Kurze Bestätigung
+        var ind = document.getElementById('save-indicator');
+        if (ind) {
+            ind.textContent = '\u2713 KB-Eintrag lokal gespeichert';
+            ind.style.color = '#27ae60';
+            setTimeout(function() { _updateConnectionStatus(); }, 2000);
+        }
+    } catch(e) { console.warn('KB local save failed', e); }
 }
 
 // KB-Statistik für eine GP in bestimmten KWs

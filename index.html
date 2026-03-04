@@ -12,6 +12,65 @@ body {
   font-size: 12px; background: #f2f2f7; color: #1d1d1f;
 }
 
+/* ── KLASSENBUCH-INDIKATOREN ── */
+.kb-indicator {
+  display: inline-block; font-size: 10px; cursor: pointer;
+  margin-left: 3px; vertical-align: middle; opacity: 0.9;
+}
+.kb-indicator:hover { opacity: 1; transform: scale(1.2); }
+.kb-badge {
+  display: inline-block; font-size: 10px; padding: 1px 5px;
+  border-radius: 6px; margin-left: 6px; font-weight: 600;
+}
+.kb-badge-green  { background: #e8f5e9; color: #2e7d32; }
+.kb-badge-orange { background: #fff3e0; color: #e65100; }
+.kb-badge-red    { background: #ffebee; color: #c62828; }
+@media print {
+  .kb-indicator, .kb-badge { display: none !important; }
+}
+
+/* ── KB-Modal ── */
+#kb-modal-overlay {
+  display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5); z-index: 9999;
+  justify-content: center; align-items: center;
+}
+#kb-modal-overlay.active { display: flex; }
+#kb-modal {
+  background: white; border-radius: 16px; padding: 24px; max-width: 480px;
+  width: 90%; box-shadow: 0 12px 40px rgba(0,0,0,0.2);
+}
+#kb-modal h3 { margin: 0 0 4px; font-size: 16px; }
+#kb-modal .kb-meta { font-size: 12px; color: #666; margin-bottom: 14px; }
+#kb-modal .kb-info { font-size: 12px; margin-bottom: 12px; }
+#kb-modal .kb-info span { display: inline-block; min-width: 60px; color: #888; }
+#kb-modal textarea {
+  width: 100%; min-height: 80px; padding: 8px 10px; border: 1px solid #ddd;
+  border-radius: 8px; font-size: 13px; font-family: inherit; resize: vertical;
+  box-sizing: border-box;
+}
+#kb-modal textarea:disabled { background: #f5f5f5; color: #666; }
+
+/* ── Klassenbuch-Tab ── */
+#klassenbuch-view { padding: 12px; }
+.kb-progress-bar {
+  height: 8px; border-radius: 4px; background: #eee; margin: 8px 0 14px; overflow: hidden;
+}
+.kb-progress-fill { height: 100%; border-radius: 4px; transition: width 0.3s; }
+table.kb-table { border-collapse: collapse; width: 100%; font-size: 12px; }
+table.kb-table th {
+  background: #f5f5f7; padding: 6px 8px; text-align: left;
+  border-bottom: 2px solid #ddd; font-weight: 600; position: sticky; top: 0;
+}
+table.kb-table td { padding: 5px 8px; border-bottom: 1px solid #eee; }
+table.kb-table tr:hover td { background: #f8f8fc; }
+table.kb-table tr.kb-feiertag td {
+  background: #fff3e0; color: #e65100; font-style: italic;
+}
+table.kb-table tr.kb-missing td { background: #fff5f5; }
+table.kb-table .kb-status-ok { color: #27ae60; }
+table.kb-table .kb-status-miss { color: #e74c3c; }
+
 /* ── READONLY-MODUS ── */
 #readonly-banner {
   display: flex; align-items: center; justify-content: center; gap: 10px;
@@ -1185,6 +1244,7 @@ table.quali tbody tr:nth-child(even) td.quali-cell:not(.qualified) {
         <div class="menu-divider"></div>
         <button onclick="showTab('soll');toggleSettingsMenu(false)">&#128218; Soll-Stunden</button>
         <button onclick="showTab('export');toggleSettingsMenu(false)">&#128100; Lehrer-Export</button>
+        <button onclick="showTab('klassenbuch');toggleSettingsMenu(false)">&#128211; Klassenbuch</button>
         <div class="menu-divider"></div>
         <button onclick="exportBackup();toggleSettingsMenu(false)">&#128229; Backup exportieren</button>
         <button onclick="importBackup();toggleSettingsMenu(false)">&#128228; Backup importieren</button>
@@ -2286,6 +2346,34 @@ table.quali tbody tr:nth-child(even) td.quali-cell:not(.qualified) {
   </div>
 </div>
 
+<!-- KB Modal Overlay -->
+<div id="kb-modal-overlay">
+  <div id="kb-modal"></div>
+</div>
+
+<!-- Klassenbuch View -->
+<div id="klassenbuch-view" class="view">
+  <h2 style="margin-bottom:12px;">&#128211; Klassenbuch</h2>
+  <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:12px;">
+    <select id="kb-gp-select" onchange="renderKlassenbuch()" style="padding:6px;font-size:13px;border:1px solid #ccc;border-radius:6px;">
+      <option value="GP 01">GP 01</option>
+      <option value="GP 02">GP 02</option>
+      <option value="GP 03">GP 03</option>
+      <option value="GP 04">GP 04</option>
+      <option value="GP 05">GP 05</option>
+      <option value="GP 06">GP 06</option>
+      <option value="GP 07">GP 07</option>
+    </select>
+    <select id="kb-block-select" onchange="renderKlassenbuch()" style="padding:6px;font-size:13px;border:1px solid #ccc;border-radius:6px;">
+      <option value="all">Alle Bl&ouml;cke</option>
+    </select>
+    <button onclick="exportKlassenbuchWord()" style="padding:6px 14px;font-size:13px;background:#007aff;color:white;border:none;border-radius:6px;cursor:pointer;">&#128229; Word-Export</button>
+  </div>
+  <div id="klassenbuch-content">
+    <p style="padding:20px;color:#999;">Bitte GP und Block w&auml;hlen...</p>
+  </div>
+</div>
+
 <script>
 
 // ── DATA (from Python) ───────────────────────────────────────────────────────
@@ -2993,7 +3081,7 @@ function getLehrerAbwesenheitGrund(name, kw) {
 }
 
 // ── SETTINGS MENU ────────────────────────────────────────────────────────────
-const SETTINGS_TABS = new Set(['theo','quali','monat','soll','export']);
+const SETTINGS_TABS = new Set(['theo','quali','monat','soll','export','klassenbuch']);
 function toggleSettingsMenu(forceClose) {
     const menu = document.getElementById('settings-menu');
     if (!menu) return;
@@ -3035,6 +3123,7 @@ function showTab(id) {
     if (id === 'export')    { initExportLehrer(); renderLehrerExport(); }
     if (id === 'monat')     { state.monatOffset = state.monatOffset || 0; renderMonat(); }
     if (id === 'theo') { renderTheo(); }
+    if (id === 'klassenbuch') renderKlassenbuch();
 }
 
 // ── KW NAVIGATION ────────────────────────────────────────────────────────────
@@ -3982,7 +4071,14 @@ function buildKWTable(kwName, gpData) {
 
         // Header
         html += `<tr class="gp-header" data-gp="${gp}">`;
-        html += `<td class="col-a" style="background:${c.bg};color:${c.text};">${gp}</td>`;
+        // KB-Badge im GP-Header
+        const _kbS = getKBStats(gp, [kwName]);
+        let kbBadgeHtml = '';
+        if (_kbS.total > 0) {
+            const _kbC = _kbS.prozent === 100 ? '#34c759' : (_kbS.prozent >= 50 ? '#ff9500' : '#ff3b30');
+            kbBadgeHtml = '<span class="kb-badge" style="margin-left:6px;font-size:9px;padding:1px 5px;border-radius:8px;background:' + _kbC + ';color:white;">' + _kbS.bestaetigt + '/' + _kbS.total + '</span>';
+        }
+        html += `<td class="col-a" style="background:${c.bg};color:${c.text};">${gp}${kbBadgeHtml}</td>`;
         DAYS_JS.forEach(d => {
             const ftHdr = isFeiertag(kwName, d) ? ' feiertag-header' : '';
             html += `<td colspan="2" class="${ftHdr}" style="background:${c.bg};color:${c.text};">${DAY_NAMES_JS[d]}`
@@ -4055,7 +4151,15 @@ function buildKWTable(kwName, gpData) {
                     const slotTyp = cell.typ || '';
                     const typClass = slotTyp ? ' slot-typ-' + slotTyp : '';
                     const themaBg = slotTyp ? (TYP_COLORS_JS[slotTyp] || c.bg) : c.bg;
-                    html += `<td class="cell-thema${ftClass}${typClass}" style="background:${themaBg};" colspan="2" data-gp="${gp}" data-slot="${slotNum}" data-day="${day}">${esc(thema && thema !== 'Pause' ? thema : '')}</td>`;
+                    // KB-Indikator: nur wenn Lehrer eingetragen und kein Feiertag
+                    let kbHtml = '';
+                    if ((cell.lehrer || '').trim() && !isFeiertag(kwName, day)) {
+                        const kbOk = cell.kb_bestaetigt === true;
+                        const kbIcon = kbOk ? '\u2705' : '\uD83D\uDD34';
+                        const kbTitle = kbOk ? 'Klassenbuch best\u00e4tigt' : 'Klassenbuch-Eintrag fehlt';
+                        kbHtml = ' <span class="kb-indicator" onclick="event.stopPropagation();openKBModal(\'' + kwName + '\',\'' + gp + '\',' + si + ',\'' + day + '\')" title="' + kbTitle + '">' + kbIcon + '</span>';
+                    }
+                    html += `<td class="cell-thema${ftClass}${typClass}" style="background:${themaBg};" colspan="2" data-gp="${gp}" data-slot="${slotNum}" data-day="${day}">${esc(thema && thema !== 'Pause' ? thema : '')}${kbHtml}</td>`;
                 }
             });
             html += '</tr>';
@@ -4537,6 +4641,341 @@ function formatKWDateRange(kwName) {
         return d.getDate() + '.' + (d.getMonth()+1) + '.' + d.getFullYear();
     };
     return fmt(monday) + ' \u2013 ' + fmt(friday);
+}
+
+// ── NRW FEIERTAGE ────────────────────────────────────────────────────────────
+const FEIERTAGE_NRW = {
+    // 2025 - feste + osterabhängige
+    "2025-01-01": "Neujahr", "2025-04-18": "Karfreitag", "2025-04-21": "Ostermontag",
+    "2025-05-01": "Tag der Arbeit", "2025-05-29": "Christi Himmelfahrt",
+    "2025-06-09": "Pfingstmontag", "2025-06-19": "Fronleichnam",
+    "2025-10-03": "Tag der Dt. Einheit", "2025-11-01": "Allerheiligen",
+    "2025-12-25": "1. Weihnachtstag", "2025-12-26": "2. Weihnachtstag",
+    // 2026
+    "2026-01-01": "Neujahr", "2026-04-03": "Karfreitag", "2026-04-06": "Ostermontag",
+    "2026-05-01": "Tag der Arbeit", "2026-05-14": "Christi Himmelfahrt",
+    "2026-05-25": "Pfingstmontag", "2026-06-04": "Fronleichnam",
+    "2026-10-03": "Tag der Dt. Einheit", "2026-11-01": "Allerheiligen",
+    "2026-12-25": "1. Weihnachtstag", "2026-12-26": "2. Weihnachtstag"
+};
+
+function _dateStr(d) {
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+function initFeiertagNRW() {
+    const dayNames = ['', 'mo', 'di', 'mi', 'do', 'fr'];  // 1=Mo, 5=Fr
+    KW_NAMES.forEach(function(kw) {
+        if (kw.includes('/25')) return;  // Archiv-KWs überspringen
+        var monday = getKWMonday(kw);
+        if (!monday) return;
+        for (var i = 0; i < 5; i++) {
+            var d = new Date(monday);
+            d.setDate(monday.getDate() + i);
+            var ds = _dateStr(d);
+            if (FEIERTAGE_NRW[ds]) {
+                if (!state.feiertage[kw]) state.feiertage[kw] = [];
+                var dayCode = dayNames[i + 1];
+                if (!state.feiertage[kw].includes(dayCode)) {
+                    state.feiertage[kw].push(dayCode);
+                }
+            }
+        }
+    });
+}
+
+// Feiertagsname für ein Datum in einer KW ermitteln
+function getFeiertagName(kw, day) {
+    var monday = getKWMonday(kw);
+    if (!monday) return '';
+    var dayIdx = ['mo','di','mi','do','fr'].indexOf(day);
+    if (dayIdx < 0) return '';
+    var d = new Date(monday);
+    d.setDate(monday.getDate() + dayIdx);
+    return FEIERTAGE_NRW[_dateStr(d)] || '';
+}
+
+// ── KLASSENBUCH-FUNKTIONEN ───────────────────────────────────────────────────
+var _kbModalData = null;  // Aktuell geöffneter KB-Eintrag
+
+function getKBCell(kw, gp, slotIdx, day) {
+    var kwData = state.kw_data[kw] || {};
+    var gpData = kwData[gp] || {};
+    var slots = gpData.slots || [];
+    var slot = slots[slotIdx] || {};
+    return slot[day] || {};
+}
+
+function openKBModal(kw, gp, slotIdx, day) {
+    var cell = getKBCell(kw, gp, slotIdx, day);
+    _kbModalData = { kw: kw, gp: gp, slotIdx: slotIdx, day: day };
+    var ro = isReadonly();
+    var slotTimes = ['08:45\u201310:15', '10:30\u201312:00', '12:30\u201314:00', '14:15\u201315:45'];
+    var dayLabel = DAY_NAMES_JS[day] || day;
+    var leLabel = cell.le || '';
+    var leLookup = LE_LOOKUP[leLabel.trim()] || {};
+
+    var modal = document.getElementById('kb-modal');
+    modal.innerHTML = '<h3>Klassenbuch-Eintrag</h3>'
+        + '<div class="kb-meta">' + kw + ' \u00b7 ' + dayLabel + ' \u00b7 Slot ' + (slotIdx+1) + ' (' + slotTimes[slotIdx] + ')<br>' + gp + '</div>'
+        + '<div class="kb-info"><span>Lehrer:</span> ' + esc(cell.lehrer || '\u2013') + '</div>'
+        + '<div class="kb-info"><span>LE:</span> ' + esc(leLabel) + (leLookup.bezeichnung ? ' \u2014 ' + esc(leLookup.bezeichnung) : '') + '</div>'
+        + '<div class="kb-info"><span>Thema:</span> ' + esc(cell.thema || '\u2013') + '</div>'
+        + '<label style="font-size:12px;font-weight:600;display:block;margin:12px 0 4px;">Tats\u00e4chlicher Inhalt:</label>'
+        + '<textarea id="kb-inhalt-input"' + (ro ? ' disabled' : '') + ' placeholder="' + (ro ? 'Nur mit Login bearbeitbar' : 'Was wurde tats\u00e4chlich unterrichtet?') + '">' + esc(cell.kb_inhalt || '') + '</textarea>'
+        + '<label style="font-size:12px;margin-top:8px;display:flex;align-items:center;gap:6px;cursor:' + (ro ? 'default' : 'pointer') + ';">'
+        + '<input type="checkbox" id="kb-bestaetigt-input"' + (cell.kb_bestaetigt ? ' checked' : '') + (ro ? ' disabled' : '') + '> Eintrag best\u00e4tigt</label>'
+        + '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;">'
+        + '<button onclick="closeKBModal()" style="padding:8px 16px;border:1px solid #ddd;background:white;border-radius:8px;cursor:pointer;font-size:13px;">' + (ro ? 'Schlie\u00dfen' : 'Abbrechen') + '</button>'
+        + (ro ? '' : '<button onclick="saveKBModal()" style="padding:8px 16px;border:none;background:#007aff;color:white;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;">Speichern</button>')
+        + '</div>';
+
+    document.getElementById('kb-modal-overlay').classList.add('active');
+}
+
+function closeKBModal() {
+    document.getElementById('kb-modal-overlay').classList.remove('active');
+    _kbModalData = null;
+}
+
+function saveKBModal() {
+    if (isReadonly() || !_kbModalData) return;
+    var d = _kbModalData;
+    var inhalt = document.getElementById('kb-inhalt-input').value;
+    var bestaetigt = document.getElementById('kb-bestaetigt-input').checked;
+    pushUndo('Klassenbuch ' + d.gp + ' ' + d.kw);
+    // Sicherstellen dass der Pfad existiert
+    if (!state.kw_data[d.kw]) state.kw_data[d.kw] = {};
+    if (!state.kw_data[d.kw][d.gp]) state.kw_data[d.kw][d.gp] = { slots: [{},{},{},{}] };
+    var slots = state.kw_data[d.kw][d.gp].slots;
+    if (!slots[d.slotIdx]) slots[d.slotIdx] = {};
+    if (!slots[d.slotIdx][d.day]) slots[d.slotIdx][d.day] = {};
+    slots[d.slotIdx][d.day].kb_inhalt = inhalt;
+    slots[d.slotIdx][d.day].kb_bestaetigt = bestaetigt;
+    markDirty();
+    renderKW();
+    closeKBModal();
+}
+
+// KB-Statistik für eine GP in bestimmten KWs
+function getKBStats(gp, kwList) {
+    var total = 0, bestaetigt = 0, fehlend = 0, feiertage = 0;
+    kwList.forEach(function(kw) {
+        var kwData = state.kw_data[kw] || {};
+        var gpData = kwData[gp] || {};
+        var slots = gpData.slots || [];
+        for (var si = 0; si < 4; si++) {
+            ['mo','di','mi','do','fr'].forEach(function(day) {
+                if (si === 3 && day === 'fr') return;
+                if (isFeiertag(kw, day)) { feiertage++; return; }
+                var cell = (slots[si] || {})[day] || {};
+                if (!cell.lehrer && !cell.le) return;  // leerer Slot
+                total++;
+                if (cell.kb_bestaetigt) bestaetigt++;
+                else fehlend++;
+            });
+        }
+    });
+    return { total: total, bestaetigt: bestaetigt, fehlend: fehlend, feiertage: feiertage,
+             prozent: total > 0 ? Math.round(bestaetigt / total * 100) : 0 };
+}
+
+// Zusammenhängende Theorieblöcke finden
+function getTheoBlockRanges(gp) {
+    var kws = (state.theo[gp] || []).filter(function(k) { return KW_NAMES.includes(k); });
+    kws.sort(function(a, b) { return KW_NAMES.indexOf(a) - KW_NAMES.indexOf(b); });
+    if (kws.length === 0) return [{ label: 'Alle KWs', kws: KW_NAMES.slice() }];
+    var blocks = [], current = [kws[0]];
+    for (var i = 1; i < kws.length; i++) {
+        if (KW_NAMES.indexOf(kws[i]) === KW_NAMES.indexOf(kws[i-1]) + 1) {
+            current.push(kws[i]);
+        } else {
+            blocks.push(current);
+            current = [kws[i]];
+        }
+    }
+    blocks.push(current);
+    return blocks.map(function(b, idx) {
+        return { label: 'Block ' + (idx+1) + ': ' + b[0] + '\u2013' + b[b.length-1], kws: b };
+    });
+}
+
+// ── KLASSENBUCH-TAB ──────────────────────────────────────────────────────────
+function renderKlassenbuch() {
+    var container = document.getElementById('klassenbuch-content');
+    if (!container) return;
+    var gpSel = document.getElementById('kb-gp-select');
+    var blockSel = document.getElementById('kb-block-select');
+    var gp = gpSel ? gpSel.value : 'GP 01';
+
+    // Blöcke für GP berechnen und Dropdown füllen
+    var blocks = getTheoBlockRanges(gp);
+    if (blockSel) {
+        var oldVal = blockSel.value;
+        blockSel.innerHTML = '<option value="all">Alle Theorie-KWs</option>';
+        blocks.forEach(function(b, i) {
+            blockSel.innerHTML += '<option value="' + i + '">' + esc(b.label) + '</option>';
+        });
+        if (oldVal && blockSel.querySelector('option[value="' + oldVal + '"]')) blockSel.value = oldVal;
+    }
+
+    // KW-Liste bestimmen
+    var kwList;
+    if (blockSel && blockSel.value !== 'all') {
+        kwList = blocks[parseInt(blockSel.value)].kws;
+    } else {
+        // Alle Theorie-KWs
+        kwList = KW_NAMES.filter(function(kw) { return isGPInTheorie(gp, kw) && !kw.includes('/25'); });
+    }
+
+    var stats = getKBStats(gp, kwList);
+
+    // Fortschrittsbalken
+    var barColor = stats.prozent >= 90 ? '#27ae60' : stats.prozent >= 50 ? '#e67e22' : '#e74c3c';
+    var html = '<div style="font-size:13px;font-weight:600;margin-bottom:4px;">Fortschritt: '
+        + stats.bestaetigt + ' von ' + stats.total + ' Slots dokumentiert (' + stats.prozent + '%)'
+        + (stats.feiertage > 0 ? ' &middot; ' + stats.feiertage + ' Feiertage' : '')
+        + '</div>'
+        + '<div class="kb-progress-bar"><div class="kb-progress-fill" style="width:' + stats.prozent + '%;background:' + barColor + ';"></div></div>';
+
+    // Tabelle
+    var slotTimes = ['08:45\u201310:15', '10:30\u201312:00', '12:30\u201314:00', '14:15\u201315:45'];
+    html += '<div style="overflow:auto;max-height:calc(100vh - 220px);">';
+    html += '<table class="kb-table"><thead><tr><th>Datum</th><th>Zeit</th><th>Lehrer</th><th>CE</th><th>LE</th><th>Geplantes Thema</th><th>Tats\u00e4chlicher Inhalt</th><th>Status</th></tr></thead><tbody>';
+
+    kwList.forEach(function(kw) {
+        var monday = getKWMonday(kw);
+        var kwData = state.kw_data[kw] || {};
+        var gpData = kwData[gp] || {};
+        var slots = gpData.slots || [];
+
+        // KW-Header
+        html += '<tr style="background:#e8eaf6;"><td colspan="8" style="font-weight:700;padding:8px;">'
+            + kw + (monday ? ' (' + formatKWDateRange(kw) + ')' : '') + '</td></tr>';
+
+        ['mo','di','mi','do','fr'].forEach(function(day, di) {
+            if (isFeiertag(kw, day)) {
+                var ftName = getFeiertagName(kw, day) || 'Feiertag';
+                var dayDate = monday ? new Date(monday.getTime() + di * 86400000) : null;
+                var dateStr = dayDate ? DAY_NAMES_JS[day] + ' ' + dayDate.getDate() + '.' + (dayDate.getMonth()+1) + '.' : DAY_NAMES_JS[day];
+                html += '<tr class="kb-feiertag"><td>' + dateStr + '</td><td colspan="7">Feiertag: ' + esc(ftName) + '</td></tr>';
+                return;
+            }
+
+            for (var si = 0; si < 4; si++) {
+                if (si === 3 && day === 'fr') continue;
+                var cell = (slots[si] || {})[day] || {};
+                if (!cell.lehrer && !cell.le) continue;
+
+                var dayDate2 = monday ? new Date(monday.getTime() + di * 86400000) : null;
+                var dateStr2 = dayDate2 ? DAY_NAMES_JS[day] + ' ' + dayDate2.getDate() + '.' + (dayDate2.getMonth()+1) + '.' : DAY_NAMES_JS[day];
+                var rowClass = cell.kb_bestaetigt ? '' : ' class="kb-missing"';
+                var statusIcon = cell.kb_bestaetigt ? '<span class="kb-status-ok">\u2713</span>' : '<span class="kb-status-miss">\u2716</span>';
+
+                html += '<tr' + rowClass + '>'
+                    + '<td>' + dateStr2 + '</td>'
+                    + '<td>' + slotTimes[si] + '</td>'
+                    + '<td>' + esc(cell.lehrer || '') + '</td>'
+                    + '<td>' + esc(cell.ce || '') + '</td>'
+                    + '<td>' + esc(cell.le || '') + '</td>'
+                    + '<td>' + esc(cell.thema || '') + '</td>'
+                    + '<td>' + esc(cell.kb_inhalt || '') + '</td>'
+                    + '<td style="text-align:center;">' + statusIcon + '</td>'
+                    + '</tr>';
+            }
+        });
+    });
+
+    html += '</tbody></table></div>';
+    container.innerHTML = html;
+}
+
+// ── WORD-EXPORT ──────────────────────────────────────────────────────────────
+function exportKlassenbuchWord() {
+    var gpSel = document.getElementById('kb-gp-select');
+    var blockSel = document.getElementById('kb-block-select');
+    var gp = gpSel ? gpSel.value : 'GP 01';
+    var blocks = getTheoBlockRanges(gp);
+    var kwList;
+    var blockLabel = 'Alle';
+    if (blockSel && blockSel.value !== 'all') {
+        var bi = parseInt(blockSel.value);
+        kwList = blocks[bi].kws;
+        blockLabel = blocks[bi].label;
+    } else {
+        kwList = KW_NAMES.filter(function(kw) { return isGPInTheorie(gp, kw) && !kw.includes('/25'); });
+    }
+
+    var stats = getKBStats(gp, kwList);
+    var slotTimes = ['08:45\u201310:15', '10:30\u201312:00', '12:30\u201314:00', '14:15\u201315:45'];
+    var zeitraum = kwList.length > 0 ? formatKWDateRange(kwList[0]) + ' bis ' + formatKWDateRange(kwList[kwList.length-1]) : '';
+
+    var doc = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">'
+        + '<head><meta charset="utf-8"><style>'
+        + 'body { font-family: Calibri, Arial, sans-serif; font-size: 11pt; }'
+        + 'h1 { font-size: 16pt; margin-bottom: 4pt; }'
+        + 'h2 { font-size: 12pt; color: #555; margin-top: 0; }'
+        + 'table { border-collapse: collapse; width: 100%; margin-top: 12pt; }'
+        + 'th { background: #4472c4; color: white; padding: 5pt 6pt; font-size: 9pt; text-align: left; }'
+        + 'td { padding: 4pt 6pt; border: 1pt solid #ccc; font-size: 9pt; }'
+        + 'tr.feiertag td { background: #fff3e0; color: #e65100; font-style: italic; }'
+        + 'tr.missing td { background: #fff5f5; }'
+        + 'tr.kw-header td { background: #d6dce4; font-weight: bold; font-size: 10pt; }'
+        + '.summary { margin-top: 16pt; font-size: 10pt; }'
+        + '</style></head><body>';
+
+    doc += '<h1>Klassenbuch \u2014 ' + gp + '</h1>';
+    doc += '<h2>' + esc(blockLabel) + '<br>' + esc(zeitraum) + '</h2>';
+
+    doc += '<table><tr><th>Datum</th><th>Zeit</th><th>Lehrer</th><th>CE</th><th>LE</th><th>Geplantes Thema</th><th>Tats\u00e4chlicher Inhalt</th><th>\u2713</th></tr>';
+
+    kwList.forEach(function(kw) {
+        var monday = getKWMonday(kw);
+        var kwData = state.kw_data[kw] || {};
+        var gpData = kwData[gp] || {};
+        var slots = gpData.slots || [];
+
+        doc += '<tr class="kw-header"><td colspan="8">' + kw + (monday ? ' (' + formatKWDateRange(kw) + ')' : '') + '</td></tr>';
+
+        ['mo','di','mi','do','fr'].forEach(function(day, di) {
+            if (isFeiertag(kw, day)) {
+                var ftName = getFeiertagName(kw, day) || 'Feiertag';
+                var dayDate = monday ? new Date(monday.getTime() + di * 86400000) : null;
+                var ds = dayDate ? DAY_NAMES_JS[day] + ' ' + dayDate.getDate() + '.' + (dayDate.getMonth()+1) + '.' : day;
+                doc += '<tr class="feiertag"><td>' + ds + '</td><td colspan="7">Feiertag: ' + esc(ftName) + '</td></tr>';
+                return;
+            }
+            for (var si = 0; si < 4; si++) {
+                if (si === 3 && day === 'fr') continue;
+                var cell = (slots[si] || {})[day] || {};
+                if (!cell.lehrer && !cell.le) continue;
+                var dayDate2 = monday ? new Date(monday.getTime() + di * 86400000) : null;
+                var ds2 = dayDate2 ? DAY_NAMES_JS[day] + ' ' + dayDate2.getDate() + '.' + (dayDate2.getMonth()+1) + '.' : day;
+                var cls = cell.kb_bestaetigt ? '' : ' class="missing"';
+                doc += '<tr' + cls + '><td>' + ds2 + '</td><td>' + slotTimes[si] + '</td>'
+                    + '<td>' + esc(cell.lehrer||'') + '</td><td>' + esc(cell.ce||'') + '</td>'
+                    + '<td>' + esc(cell.le||'') + '</td><td>' + esc(cell.thema||'') + '</td>'
+                    + '<td>' + esc(cell.kb_inhalt||'') + '</td>'
+                    + '<td style="text-align:center;">' + (cell.kb_bestaetigt ? '\u2713' : '') + '</td></tr>';
+            }
+        });
+    });
+
+    doc += '</table>';
+    doc += '<div class="summary"><b>Zusammenfassung:</b> ' + stats.bestaetigt + ' von ' + stats.total + ' Slots dokumentiert (' + stats.prozent + '%)'
+        + '<br>Fehlende Eintr\u00e4ge: ' + stats.fehlend
+        + '<br>Feiertage im Zeitraum: ' + stats.feiertage + '</div>';
+    doc += '</body></html>';
+
+    var blob = new Blob(['\ufeff' + doc], { type: 'application/msword' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'Klassenbuch_' + gp.replace(/\s/g, '') + '_' + blockLabel.replace(/[^a-zA-Z0-9]/g, '_') + '.doc';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
 }
 
 // Gibt die KW aus KW_NAMES zurück, in die das heutige Datum fällt
@@ -6152,6 +6591,7 @@ function monatNav(dir) {
 // ── INIT ──────────────────────────────────────────────────────────────────────
 _checkReadonlyStatus();
 loadFromStorage();
+initFeiertagNRW();
 _checkReadonlyStatus();
 // Immer die aktuelle Kalenderwoche beim Öffnen anzeigen (nicht die zuletzt gespeicherte)
 var _initKW = (typeof getCurrentKWName === 'function') ? getCurrentKWName() : null;

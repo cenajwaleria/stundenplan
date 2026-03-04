@@ -2692,7 +2692,7 @@ function showLehrerDrop(q, slotCtx) {
     let html = '';
     // Sondereinträge (nur anzeigen wenn Suchtext passt)
     const SONDER = ['SprachAk'];
-    const sonderFiltered = SONDER.filter(s => !q || s.toLowerCase().includes(q.toLowerCase()));
+    const sonderFiltered = SONDER.filter(s => !q || s.toLowerCase().includes(q.toLowerCase()) || q.toLowerCase().includes(s.toLowerCase()));
     if (sonderFiltered.length) {
         html += '<div class="lehrer-group-label">── Sondereinträge ──</div>';
         html += sonderFiltered.map(s => `<div class="lehrer-item" style="color:#7b1fa2;font-weight:600;" onmousedown="pickLehrer('${s}')">🏫 ${s}</div>`).join('');
@@ -2838,6 +2838,10 @@ function finishEditing(save) {
     cell.textContent = newVal;
     cell.dataset.origVal = newVal;
     editingCell = null;
+    // SprachAk: Tabelle neu rendern damit Zeitspalte aktualisiert wird
+    if (save && (newVal.toLowerCase().includes('sprachak') || oldVal.toLowerCase().includes('sprachak'))) {
+        buildKWTable(state.currentKW);
+    }
 }
 
 // ── Doppelbuchungs-Warnung ─────────────────────────────────────────────────────

@@ -5233,8 +5233,7 @@ function exportKlassenbuchWord() {
         + 'ul { margin: 0; padding-left: 14pt; } li { margin-bottom: 1pt; }'
         + '</style></head><body>';
 
-    doc += '<h1>Klassenbuch \u2014 ' + esc(gp) + ' \u2014 ' + esc(kwVon) + '\u2013' + esc(kwBis) + '</h1>';
-    doc += '<h2>' + esc(zeitraum) + ' &nbsp;\u00b7&nbsp; ' + kwList.length + ' Wochen &nbsp;\u00b7&nbsp; ' + totalUE + ' Unterrichtseinheiten</h2>';
+    doc += '<h1>Klassenbuch \u2014 ' + esc(gp) + '</h1>';
 
     // Pro LE eine Sektion
     leKeys.forEach(function(leCode) {
@@ -5247,7 +5246,7 @@ function exportKlassenbuchWord() {
             + (le.ce ? ' &nbsp;\u00b7&nbsp; CE ' + esc(le.ce) : '')
             + '</div>';
 
-        doc += '<table><tr><th style="width:15%;">Datum</th><th style="width:12%;">Zeit</th><th style="width:14%;">Lehrkraft</th><th style="width:59%;">Tats\u00e4chlicher Inhalt</th></tr>';
+        doc += '<table><tr><th style="width:15%;">Datum</th><th style="width:12%;">Zeit</th><th style="width:14%;">Lehrkraft</th><th style="width:59%;">Inhalt</th></tr>';
 
         le.slots.forEach(function(s) {
             doc += '<tr><td>' + s.dateStr + '</td>'

@@ -25391,7 +25391,12 @@
       "LE: 32": 12
     }
   },
-  "lehrer_typ": {},
+  "lehrer_typ": {
+    "R. Makiolka": "sonstige",
+    "A. Herzog-Gottgens": "honorar",
+    "I. Buckkremer": "sonstige",
+    "A. Monteiro": "sonstige"
+  },
   "lehrer_list": [
     "C. Grumann",
     "R. Makiolka",

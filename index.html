@@ -4175,9 +4175,27 @@ function buildKWTable(kwName, gpData) {
             const slotNum = si + 1;
             const sd = slots[si] || {};
 
+            // SprachAk-Erkennung: Prüfe ob an einem Tag "SprachAk" eingetragen ist
+            const SPRACHAK_TIMES = ['', '', '14:00 \u2013 15:30', '16:00 \u2013 17:30'];
+            const DAY_ABBR = {mo:'Mo',di:'Di',mi:'Mi',do:'Do',fr:'Fr'};
+            let sprachAkDays = [];
+            DAYS_JS.forEach(day => {
+                const sc = sd[day] || {};
+                if ((sc.lehrer || '').trim().toLowerCase() === 'sprachak') {
+                    sprachAkDays.push(day);
+                }
+            });
+            // Slot-Label: normal + ggf. SprachAk-Zeiten
+            let slotLabel = SLOT_LABELS[si];
+            if (sprachAkDays.length > 0 && SPRACHAK_TIMES[si]) {
+                const dayList = sprachAkDays.map(d => DAY_ABBR[d]).join(', ');
+                slotLabel += '<br><span style="font-size:8px;color:#7b1fa2;font-weight:bold;">'
+                    + dayList + ': ' + SPRACHAK_TIMES[si] + '</span>';
+            }
+
             // Lehrer row
             html += `<tr class="lehrer-row" data-gp="${gp}" data-slot="${slotNum}">`;
-            html += `<td class="col-a">${SLOT_LABELS[si]}</td>`;
+            html += `<td class="col-a">${slotLabel}</td>`;
             DAYS_JS.forEach(day => {
                 if (slotNum === 4 && day === 'fr') {
                     html += '<td class="no-slot" colspan="2"></td>';
@@ -4191,7 +4209,12 @@ function buildKWTable(kwName, gpData) {
                     const lBg  = slotTyp ? (TYP_COLORS_JS[slotTyp] || c.bg) : c.bg;
                     const lTxt = slotTyp ? (TYP_TEXT_JS[slotTyp]   || '#000') : c.text;
                     // Bei Feiertag: "Feiertag" anzeigen statt Lehrername
-                    const lehrerContent = isFt ? (si === 0 ? 'Feiertag' : '') : esc(lv);
+                    let lehrerContent = isFt ? (si === 0 ? 'Feiertag' : '') : esc(lv);
+                    // SprachAk: Uhrzeit im Feld anzeigen
+                    if (!isFt && lv.trim().toLowerCase() === 'sprachak' && SPRACHAK_TIMES[si]) {
+                        lehrerContent += '<br><span style="font-size:8px;color:#7b1fa2;font-weight:bold;">'
+                            + SPRACHAK_TIMES[si] + '</span>';
+                    }
                     html += `<td class="cell-lehrer${ftClass}${typClass}" colspan="2" data-gp="${gp}" `
                           + `data-slot="${slotNum}" data-day="${day}" `
                           + `style="background:${lBg};color:${lTxt};">${lehrerContent}</td>`;

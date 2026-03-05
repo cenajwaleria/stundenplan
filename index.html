@@ -3659,7 +3659,8 @@ function buildKWTable(kwName, gpData) {
                     const themaBg = slotTyp ? (TYP_COLORS_JS[slotTyp] || c.bg) : c.bg;
                     // KB-Indikator: nur wenn Lehrer UND LE eingetragen und kein Feiertag
                     let kbHtml = '';
-                    if ((cell.lehrer || '').trim() && (cell.le || '').trim() && !isFt) {
+                    const _lehr = (cell.lehrer || '').trim().toLowerCase();
+                    if (_lehr && !_lehr.includes('feiertag') && (cell.le || '').trim() && !isFt) {
                         const kbOk = cell.kb_bestaetigt === true;
                         const kbIcon = kbOk ? '\u2705' : '\uD83D\uDD34';
                         const kbTitle = kbOk ? 'Klassenbuch best\u00e4tigt' : 'Klassenbuch-Eintrag fehlt';
@@ -4377,7 +4378,8 @@ function getKBStats(gp, kwList) {
                 if (si === 3 && day === 'fr') return;
                 if (isFeiertag(kw, day)) { feiertage++; return; }
                 var cell = (slots[si] || {})[day] || {};
-                if (!(cell.lehrer || '').trim() || !(cell.le || '').trim()) return;  // kein Lehrer oder keine LE
+                var _l = (cell.lehrer || '').trim();
+                if (!_l || _l.toLowerCase().includes('feiertag') || !(cell.le || '').trim()) return;
                 total++;
                 if (cell.kb_bestaetigt) bestaetigt++;
                 else fehlend++;

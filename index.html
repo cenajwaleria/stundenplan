@@ -4715,8 +4715,26 @@ function toggleGPInKW(gp) {
     if (isReadonly()) return;
     var kw = state.currentKW;
     if (!kw) return;
-    toggleTheoKW(gp, kw);
-    renderGPCheckboxes();
+    pushUndo('Theorie ' + gp);
+    var active = isGPInTheorie(gp, kw);
+    if (active) {
+        // Abwählen: GP soll in dieser KW NICHT angezeigt werden
+        if (!state.theo[gp] || state.theo[gp].length === 0) {
+            // Leeres Array = "überall sichtbar" → mit ALLEN KWs füllen, dann diese entfernen
+            state.theo[gp] = KW_NAMES.filter(function(k) { return k !== kw && !k.includes('/25'); });
+        } else {
+            // KW aus Array entfernen
+            var idx = state.theo[gp].indexOf(kw);
+            if (idx >= 0) state.theo[gp].splice(idx, 1);
+        }
+    } else {
+        // Anwählen: GP soll in dieser KW angezeigt werden
+        if (!state.theo[gp]) state.theo[gp] = [];
+        if (!state.theo[gp].includes(kw)) state.theo[gp].push(kw);
+    }
+    markDirty();
+    if (typeof renderTheo === 'function') renderTheo();
+    renderKW();
 }
 
 function toggleTheoKW(gp, kw) {

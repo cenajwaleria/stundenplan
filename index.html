@@ -1299,6 +1299,8 @@ table.quali tbody tr:nth-child(even) td.quali-cell:not(.qualified) {
     </div>
     <button id="undo-btn" onclick="undoChange()" title="Rückgängig (Strg+Z)" disabled
       style="border:none;background:transparent;font-size:16px;cursor:pointer;padding:4px 6px;border-radius:6px;opacity:0.35;line-height:1;">&#8617;</button>
+    <button id="redo-btn" onclick="redoChange()" title="Wiederholen (Strg+Shift+Z)" disabled
+      style="border:none;background:transparent;font-size:16px;cursor:pointer;padding:4px 6px;border-radius:6px;opacity:0.35;line-height:1;">&#8618;</button>
     <span id="save-indicator">&#10003; Alle Änderungen gespeichert</span>
   </div>
 
@@ -2419,11 +2421,19 @@ function _restoreSnapshot(snapshotStr) {
 
 function _updateUndoUI() {
     const btn = document.getElementById('undo-btn');
-    if (!btn) return;
-    const n = _undoStack.length;
-    btn.disabled = n === 0;
-    btn.style.opacity = n === 0 ? '0.35' : '1';
-    btn.title = n > 0 ? 'R\u00fcckg\u00e4ngig: ' + _undoStack[n-1].label + ' (' + n + '/10)' : 'Nichts r\u00fcckg\u00e4ngig';
+    if (btn) {
+        const n = _undoStack.length;
+        btn.disabled = n === 0;
+        btn.style.opacity = n === 0 ? '0.35' : '1';
+        btn.title = n > 0 ? 'R\u00fcckg\u00e4ngig: ' + _undoStack[n-1].label + ' (' + n + '/10)' : 'Nichts r\u00fcckg\u00e4ngig';
+    }
+    const rbtn = document.getElementById('redo-btn');
+    if (rbtn) {
+        const r = _redoStack.length;
+        rbtn.disabled = r === 0;
+        rbtn.style.opacity = r === 0 ? '0.35' : '1';
+        rbtn.title = r > 0 ? 'Wiederholen (' + r + ')' : 'Nichts zu wiederholen';
+    }
 }
 
 function _showUndoToast(msg) {

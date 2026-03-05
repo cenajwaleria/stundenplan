@@ -488,9 +488,10 @@
           {
             "mo": {
               "lehrer": "SprachAk.",
-              "ce": "CE: 02",
-              "le": "-",
-              "thema": ""
+              "ce": "",
+              "le": "",
+              "thema": "",
+              "typ": ""
             },
             "di": {
               "lehrer": "",

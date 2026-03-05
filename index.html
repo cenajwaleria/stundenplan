@@ -1828,6 +1828,7 @@ function _updateReadonlyUI() {
 var STORAGE_MODE = 'local';  // 'github', 'server', oder 'local'
 var _githubFileSha = null;   // SHA des aktuellen Datei-Stands auf GitHub
 var _githubSaving = false;   // Verhindert parallele Saves
+var _githubSavePending = false; // Erneuter Save nötig nach aktuellem
 
 // GitHub-Konfiguration aus localStorage laden
 function _getGitHubConfig() {
@@ -1878,8 +1879,12 @@ function _githubLoadData() {
 }
 
 function _githubSaveData(payload) {
-    if (_githubSaving) return Promise.resolve();
+    if (_githubSaving) {
+        _githubSavePending = true; // Merken, dass danach nochmal gespeichert werden muss
+        return Promise.resolve();
+    }
     _githubSaving = true;
+    _githubSavePending = false;
     var cfg = _getGitHubConfig();
     var url = 'https://api.github.com/repos/' + cfg.owner + '/' + cfg.repo + '/contents/' + cfg.file;
     var jsonStr = JSON.stringify(payload, null, 2);
@@ -1909,10 +1914,20 @@ function _githubSaveData(payload) {
     .then(function(result) {
         _githubFileSha = result.content.sha;
         _githubSaving = false;
+        // Falls während des Saves neue Änderungen kamen → erneut speichern
+        if (_githubSavePending) {
+            _githubSavePending = false;
+            return _githubSaveData(_buildSavePayload());
+        }
         return result;
     })
     .catch(function(err) {
         _githubSaving = false;
+        // Auch bei Fehler: pending Save versuchen
+        if (_githubSavePending) {
+            _githubSavePending = false;
+            setTimeout(function() { _githubSaveData(_buildSavePayload()); }, 2000);
+        }
         throw err;
     });
 }
@@ -2400,9 +2415,7 @@ function redoChange() {
 function _restoreSnapshot(snapshotStr) {
     const d = JSON.parse(snapshotStr);
     if (d.kw_data)            state.kw_data            = d.kw_data;
-    if (d.ubertrag && Object.keys(d.ubertrag).length > 0) {
-        state.ubertrag = d.ubertrag;
-    }
+    if (d.ubertrag !== undefined) state.ubertrag = d.ubertrag;
     if (d.theo)               state.theo               = d.theo;
     if (d.feiertage)          state.feiertage          = d.feiertage;
     if (d.notizen)            state.notizen            = d.notizen;
@@ -2412,10 +2425,15 @@ function _restoreSnapshot(snapshotStr) {
     const active = document.querySelector('.view.active');
     if (active) {
         const id = active.id.replace('-view','');
-        if (id === 'kw')        renderKW();
+        if (id === 'kw')             renderKW();
         else if (id === 'dashboard') renderDashboard();
         else if (id === 'theo')      renderTheo();
         else if (id === 'lv')        renderLV();
+        else if (id === 'klassenbuch' && typeof renderKlassenbuch === 'function') renderKlassenbuch();
+        else if (id === 'monat'      && typeof renderMonat === 'function')        renderMonat();
+        else if (id === 'quali'      && typeof renderQuali === 'function')        renderQuali();
+        else if (id === 'soll'       && typeof renderSoll === 'function')         renderSoll();
+        else if (id === 'export'     && typeof renderExport === 'function')       renderExport();
     }
 }
 
@@ -2685,6 +2703,7 @@ function getLehrerSorted(q, slotCtx) {
 
     const all = src.filter(l =>
         getLehrerKat(l) !== 'inaktiv' &&
+        !l.toLowerCase().includes('sprachak') &&
         (!lq || l.toLowerCase().includes(lq))
     );
     return {
@@ -3524,7 +3543,7 @@ function buildKWTable(kwName, gpData) {
     for (let i=0; i<5; i++) html += '<col class="col-ce"><col class="col-le">';
     html += '</colgroup>';
 
-    for (let gpNum=1; gpNum<=7; gpNum++) {
+    for (let gpNum=1; gpNum<=8; gpNum++) {
         const gp = 'GP ' + String(gpNum).padStart(2,'0');
         // Skip GP if not in Theorie for this KW
         if (!isGPInTheorie(gp, kwName)) continue;
@@ -4373,10 +4392,15 @@ function getKBStats(gp, kwList) {
         var kwData = state.kw_data[kw] || {};
         var gpData = kwData[gp] || {};
         var slots = gpData.slots || [];
+        // Feiertage tageweise zählen (nicht pro Slot)
+        var ftDays = {};
+        ['mo','di','mi','do','fr'].forEach(function(day) {
+            if (isFeiertag(kw, day) && !ftDays[day]) { ftDays[day] = true; feiertage++; }
+        });
         for (var si = 0; si < 4; si++) {
             ['mo','di','mi','do','fr'].forEach(function(day) {
                 if (si === 3 && day === 'fr') return;
-                if (isFeiertag(kw, day)) { feiertage++; return; }
+                if (ftDays[day]) return;
                 var cell = (slots[si] || {})[day] || {};
                 var _l = (cell.lehrer || '').trim();
                 if (!_l || _l.toLowerCase().includes('feiertag') || !(cell.le || '').trim()) return;
@@ -4527,6 +4551,9 @@ function renderKlassenbuch() {
                 if (si === 3 && day === 'fr') continue;
                 var cell = (slots[si] || {})[day] || {};
                 if (_isKBPause(cell)) continue;
+                // Kein KB-Eintrag nötig wenn kein LE oder wenn Lehrer = Feiertag
+                var _kbLehrer = (cell.lehrer || '').trim();
+                if (!_kbLehrer || !((cell.le || '').trim()) || _kbLehrer.toLowerCase().includes('feiertag')) continue;
                 var dayDate2 = monday ? new Date(monday.getTime() + di * 86400000) : null;
                 var dateStr2 = dayDate2 ? DAY_NAMES_JS[day] + ' ' + dayDate2.getDate() + '.' + (dayDate2.getMonth()+1) + '.' : DAY_NAMES_JS[day];
                 var rowClass = cell.kb_bestaetigt ? '' : ' class="kb-missing"';
@@ -4580,6 +4607,8 @@ function exportKlassenbuchWord() {
                 if (si === 3 && day === 'fr') continue;
                 var cell = (slots[si] || {})[day] || {};
                 if (_isKBPause(cell)) continue;
+                var _expLehrer = (cell.lehrer || '').trim();
+                if (!_expLehrer || !(cell.le || '').trim() || _expLehrer.toLowerCase().includes('feiertag')) continue;
                 var leCode = (cell.le || '').trim() || 'Sonstige';
                 if (!leMap[leCode]) {
                     var lk = LE_LOOKUP[leCode] || {};
@@ -4706,7 +4735,7 @@ function renderGPCheckboxes() {
     if (!box) return;
     var kw = state.currentKW;
     if (!kw) { box.innerHTML = ''; return; }
-    var ro = isReadonly();
+    var ro = isReadonly() || kw.includes('/25');
     var html = '';
     for (var g = 1; g <= 8; g++) {
         var gp = 'GP ' + String(g).padStart(2, '0');
@@ -4798,7 +4827,7 @@ function renderTheo() {
     if (!container) return;
 
     const GPs = [];
-    for (let g = 1; g <= 7; g++) GPs.push('GP ' + String(g).padStart(2,'0'));
+    for (let g = 1; g <= 8; g++) GPs.push('GP ' + String(g).padStart(2,'0'));
 
     const kwOpts = KW_NAMES.map(function(kw) {
         return '<option value="' + kw + '">' + kw + '</option>';
@@ -4823,7 +4852,7 @@ function renderTheo() {
         // Mini pip bar (visual overview, still clickable for fine-tuning)
         html += '<div class="theo-kw-bar">';
         KW_NAMES.forEach(function(kw) {
-            const active = state.theo[gp] && state.theo[gp].includes(kw);
+            const active = isGPInTheorie(gp, kw);
             const isCurr = kw === state.currentKW;
             const cls    = 'theo-kw-pip' + (active ? ' active' : '') + (isCurr ? ' current' : '');
             html += '<button class="' + cls + '" title="' + kw + (active ? ' \u2713 Theorie' : ' \u2013 Praxis') + '" onclick="toggleTheoKW(\'' + gp + '\',\'' + kw + '\')"></button>';
@@ -4882,7 +4911,7 @@ function renderSidebar() {
     // ── Widget A: Lehrer-Auslastung ──────────────────────────
     const stunden = {};
     state.lehrer_list.forEach(function(l){ stunden[l] = 0; });
-    for (let g = 1; g <= 7; g++) {
+    for (let g = 1; g <= 8; g++) {
         const gp    = 'GP ' + String(g).padStart(2,'0');
         const slots = ((kwGPs[gp] || {}).slots || []);
         for (let si = 0; si < 4; si++) {
@@ -4919,7 +4948,7 @@ function renderSidebar() {
 
     // ── Widget B: GP-Füllstand ───────────────────────────────
     let wB = '<div class="sb-widget"><h4>\uD83D\uDCCB GP-F\u00fcllstand</h4>';
-    for (let g = 1; g <= 7; g++) {
+    for (let g = 1; g <= 8; g++) {
         const gpKey = 'GP ' + String(g).padStart(2,'0');
         const slots = ((kwGPs[gpKey] || {}).slots || []);
         let total = 0, filled = 0;
@@ -4947,7 +4976,7 @@ function renderSidebar() {
 
     // ── Widget C: Warnungen ──────────────────────────────────
     const warns = [];
-    for (let g = 1; g <= 7; g++) {
+    for (let g = 1; g <= 8; g++) {
         const gp    = 'GP ' + String(g).padStart(2,'0');
         const slots = ((kwGPs[gp] || {}).slots || []);
         for (let si = 0; si < 4; si++) {
@@ -4961,7 +4990,7 @@ function renderSidebar() {
         }
     }
     let emptyC = 0;
-    for (let g = 1; g <= 7; g++) {
+    for (let g = 1; g <= 8; g++) {
         const gp    = 'GP ' + String(g).padStart(2,'0');
         const slots = ((kwGPs[gp] || {}).slots || []);
         for (let si = 0; si < 4; si++) {
@@ -4984,7 +5013,7 @@ function renderSidebar() {
 
     // ── Widget D: LE-Rückstand ───────────────────────────────
     const gpIstSlots = {};
-    for (let g = 1; g <= 7; g++) {
+    for (let g = 1; g <= 8; g++) {
         const gp = 'GP ' + String(g).padStart(2,'0');
         gpIstSlots[gp] = 0;
         Object.keys(state.kw_data).forEach(function(kwN) {
@@ -5003,7 +5032,7 @@ function renderSidebar() {
     const sollSlots = Math.round(sollTotal / 2);
 
     let wD = '<div class="sb-widget"><h4>\uD83D\uDCC8 LE-R\u00fcckstand je GP</h4>';
-    for (let g = 1; g <= 7; g++) {
+    for (let g = 1; g <= 8; g++) {
         const gp  = 'GP ' + String(g).padStart(2,'0');
         const ist = gpIstSlots[gp] || 0;
         const pct = sollSlots > 0 ? Math.min(100, Math.round((ist / sollSlots) * 100)) : 0;
@@ -5064,7 +5093,7 @@ function doPrint() {
     // Leere GP-Blöcke zeilenweise ausblenden (alle Zeilen mit data-gp=X)
     const hiddenGPs = [];
     if (isAll) {
-        for (let g = 1; g <= 7; g++) {
+        for (let g = 1; g <= 8; g++) {
             const gpName = 'GP ' + String(g).padStart(2,'0');
             const gpData = (state.kw_data[kw] || {})[gpName] || {};
             const slots  = gpData.slots || [];

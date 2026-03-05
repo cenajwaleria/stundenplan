@@ -180,7 +180,7 @@ table.sp {
 }
 table.sp td, table.sp th {
   border: 1px solid #999;
-  padding: 2px 4px;
+  padding: 4px 6px;
   vertical-align: middle;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -188,23 +188,23 @@ table.sp td, table.sp th {
 }
 /* Column widths */
 table.sp .col-a   { width: 155px; min-width: 155px; }
-table.sp .col-ce  { width: 56px; }
-table.sp .col-le  { width: 64px; }
-table.sp .col-lehrer { width: 120px; }
+table.sp .col-ce  { width: 64px; }
+table.sp .col-le  { width: 74px; }
+table.sp .col-lehrer { width: 130px; }
 
 /* GP Header rows */
 tr.gp-header td {
-  font-weight: 700; font-size: 14px; text-align: center;
-  height: 32px; border: 2px solid #bbb; border-radius: 2px;
+  font-weight: 700; font-size: 15px; text-align: center;
+  height: 36px; border: 2px solid #bbb; border-radius: 2px;
 }
-tr.gp-header .col-a { font-size: 15px; font-weight: 700; }
+tr.gp-header .col-a { font-size: 16px; font-weight: 700; }
 
 /* Lehrer rows */
 tr.lehrer-row .col-a {
-  font-size: 11px; font-weight: 600; color: #444; background: #f9f9f9;
+  font-size: 12px; font-weight: 600; color: #444; background: #f9f9f9;
 }
 tr.lehrer-row .cell-lehrer {
-  text-align: center; font-size: 12px; height: 28px; cursor: pointer;
+  text-align: center; font-size: 13px; height: 34px; cursor: pointer;
 }
 tr.lehrer-row .cell-lehrer:hover { outline: 2px solid #007aff; }
 tr.lehrer-row .cell-lehrer.editing { outline: 2px solid #e74c3c; }
@@ -217,27 +217,27 @@ tr.lehrer-row .cell-lehrer.lehrer-highlight {
 
 /* CE/LE rows */
 tr.cele-row .col-a {
-  font-size: 10px; font-style: italic; color: #666; background: #f5f5f7;
+  font-size: 11px; font-style: italic; color: #666; background: #f5f5f7;
 }
 tr.cele-row .cell-ce {
-  font-size: 10px; color: #666; text-align: center; background: #fafafa;
+  font-size: 11px; color: #666; text-align: center; background: #fafafa;
 }
 tr.cele-row .cell-le {
-  font-size: 11px; font-weight: 600; text-align: center; cursor: pointer;
+  font-size: 12px; font-weight: 600; text-align: center; cursor: pointer;
 }
 tr.cele-row .cell-le:hover { outline: 2px solid #007aff; }
 tr.cele-row .cell-le.has-value { color: #1a5276; }
 
 /* Thema rows */
-tr.thema-row { height: 18px; }
-tr.thema-row .col-a { font-size: 10px; color: #999; }
+tr.thema-row { height: 24px; }
+tr.thema-row .col-a { font-size: 11px; color: #999; }
 tr.thema-row .cell-thema {
-  font-size: 9px; font-style: italic; color: #555;
-  text-align: center; height: 18px;
+  font-size: 11px; font-style: italic; color: #555;
+  text-align: center; height: 24px;
   white-space: normal; overflow: visible; text-overflow: clip;
 }
 tr.thema-row .cell-pause {
-  font-size: 9px; color: #aaa; text-align: center;
+  font-size: 10px; color: #aaa; text-align: center;
   background: #f5f5f5;
 }
 
@@ -246,17 +246,17 @@ tr.sep-row td { height: 6px; background: #e0e0e0; border: 1px solid #ccc; }
 
 /* Pause separator rows (between slot groups) */
 tr.pause-sep-row td {
-  height: 18px !important; background: #efefef !important;
+  height: 22px !important; background: #efefef !important;
   border-left: none !important; border-right: none !important;
   border-top: 1px solid #d0d0d0 !important; border-bottom: 1px solid #d0d0d0 !important;
-  font-size: 10px !important; color: #444 !important; font-style: italic !important;
+  font-size: 11px !important; color: #444 !important; font-style: italic !important;
   font-weight: 500 !important; text-align: center !important;
   white-space: nowrap !important; overflow: visible !important;
-  line-height: 18px !important; padding: 0 6px !important;
+  line-height: 22px !important; padding: 0 6px !important;
 }
 tr.pause-sep-row .col-a {
   text-align: right !important; padding-right: 8px !important;
-  color: #555 !important; font-size: 9px !important;
+  color: #555 !important; font-size: 10px !important;
 }
 @media print {
   tr.pause-sep-row td { height: 12px !important; font-size: 7pt !important; line-height: 12px !important; }

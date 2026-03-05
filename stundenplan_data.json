@@ -424,9 +424,10 @@
           {
             "mo": {
               "lehrer": "M. Münstermann",
-              "ce": "CE: 02",
-              "le": "LE: 07",
-              "thema": "Haut- und Körperpflege"
+              "ce": "",
+              "le": "",
+              "thema": "",
+              "typ": ""
             },
             "di": {
               "lehrer": "",
@@ -25584,5 +25585,5 @@
       "KW 21"
     ]
   },
-  "currentKW": "KW 2"
+  "currentKW": "KW 1"
 }

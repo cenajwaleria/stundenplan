@@ -677,6 +677,14 @@ td.cell-lehrer[draggable="true"] { cursor: grab; }
 td.cell-lehrer.drag-source { opacity: 0.4; outline: 2px dashed #e67e22 !important; }
 td.cell-lehrer.drag-over   { background: #d5f5e3 !important; outline: 2px solid #27ae60 !important; }
 
+/* === GP-Checkboxen in KW-View === */
+#gp-checkboxes { display:flex; gap:6px; padding:6px 12px; flex-wrap:wrap; align-items:center; }
+#gp-checkboxes label { display:flex; align-items:center; gap:4px; padding:3px 8px; border-radius:6px; font-size:11px; font-weight:600; cursor:pointer; border:1px solid #ddd; user-select:none; }
+#gp-checkboxes label.checked { border-color:transparent; }
+#gp-checkboxes label.unchecked { opacity:0.4; background:#f0f0f0 !important; }
+#gp-checkboxes input[type="checkbox"] { margin:0; cursor:pointer; }
+@media print { #gp-checkboxes { display:none !important; } }
+
 /* === Feature Feiertage === */
 .feiertag-col { background: #FF0000 !important; color: #fff !important; cursor: not-allowed !important; pointer-events: none !important; font-style: italic; text-align: center !important; font-size: 10px !important; }
 .feiertag-col .sol-btn { display: none !important; }
@@ -1348,6 +1356,7 @@ table.quali tbody tr:nth-child(even) td.quali-cell:not(.qualified) {
     placeholder="📝 Notizen zu dieser Woche… (z.B. Raumänderungen, besondere Hinweise)"
 ></textarea>
 
+    <div id="gp-checkboxes"></div>
     <div id="kw-content-wrapper">
       <div id="kw-table-area">
         <div class="sp-wrapper">
@@ -2577,6 +2586,7 @@ function renderKW() {
     initNotizHandler();
     checkAbwesenheitKonflikte();
     renderSidebar();
+    renderGPCheckboxes();
 }
 // Alle KWs sortiert (2025-Archiv zuerst, dann 2026)
 function _getAllKWNamesSorted() {
@@ -3491,6 +3501,7 @@ const GP_COLORS_JS = {
     "GP 05":{"bg":"#F5EEFF","text":"#4a0080"},
     "GP 06":{"bg":"#FFF2E0","text":"#6a2800"},
     "GP 07":{"bg":"#E3F7F5","text":"#003333"},
+    "GP 08":{"bg":"#C6F0D6","text":"#1a4a1a"},
 };
 const DAYS_JS = ["mo","di","mi","do","fr"];
 const DAY_NAMES_JS = {"mo":"Montag","di":"Dienstag","mi":"Mittwoch","do":"Donnerstag","fr":"Freitag"};
@@ -4675,6 +4686,37 @@ function isGPInTheorie(gp, kw) {
     // If no theo data for this GP → always show (default)
     if (!state.theo[gp] || state.theo[gp].length === 0) return true;
     return state.theo[gp].includes(kw);
+}
+
+// ── GP-Checkboxen in KW-View ──────────────────────────────────────────────────
+function renderGPCheckboxes() {
+    var box = document.getElementById('gp-checkboxes');
+    if (!box) return;
+    var kw = state.currentKW;
+    if (!kw) { box.innerHTML = ''; return; }
+    var ro = isReadonly();
+    var html = '';
+    for (var g = 1; g <= 8; g++) {
+        var gp = 'GP ' + String(g).padStart(2, '0');
+        var active = isGPInTheorie(gp, kw);
+        var c = GP_COLORS_JS[gp] || { bg: '#eee', text: '#333' };
+        var cls = active ? 'checked' : 'unchecked';
+        var bg = active ? c.bg : '';
+        var clr = active ? c.text : '#999';
+        html += '<label class="' + cls + '" style="background:' + bg + ';color:' + clr + ';">'
+            + '<input type="checkbox" ' + (active ? 'checked' : '') + (ro ? ' disabled' : '')
+            + ' onchange="toggleGPInKW(\'' + gp + '\')">'
+            + gp + '</label>';
+    }
+    box.innerHTML = html;
+}
+
+function toggleGPInKW(gp) {
+    if (isReadonly()) return;
+    var kw = state.currentKW;
+    if (!kw) return;
+    toggleTheoKW(gp, kw);
+    renderGPCheckboxes();
 }
 
 function toggleTheoKW(gp, kw) {

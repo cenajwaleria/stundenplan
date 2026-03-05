@@ -1252,7 +1252,7 @@ table.quali tbody tr:nth-child(even) td.quali-cell:not(.qualified) {
 <script type="application/json" id="lehrer-list-json">["C. Grumann", "R. Makiolka", "M. Münstermann", "A. Mac", "W. Cenaj", "N. Heinrichs", "I. Lakehal", "G. Trebus", "A. Althoff", "S. Bongartz", "A. Hribach", "S. Droudiani", "A. Monteiro", "I. Buckkremer", "A. Herzog-Gottgens", "D. Loukili", "A. Wimmer"]</script>
 <script type="application/json" id="lehrer-kat-json">{}</script>
 <script type="application/json" id="lehrer-quali-json">{}</script>
-<script type="application/json" id="kw-names-json">["KW 1", "KW 2", "KW 3", "KW 4", "KW 5", "KW 6", "KW 7", "KW 8", "KW 9", "KW 10", "KW 11", "KW 12", "KW 13", "KW 14", "KW 15", "KW 16", "KW 17", "KW 18", "KW 19", "KW 20", "KW 21"]</script>
+<script type="application/json" id="kw-names-json">["KW 1", "KW 2", "KW 3", "KW 4", "KW 5", "KW 6", "KW 7", "KW 8", "KW 9", "KW 10", "KW 11", "KW 12", "KW 13", "KW 14", "KW 15", "KW 16", "KW 17", "KW 18", "KW 19", "KW 20", "KW 21", "KW 22", "KW 23", "KW 24", "KW 25", "KW 26", "KW 27", "KW 28", "KW 29", "KW 30", "KW 31", "KW 32", "KW 33", "KW 34", "KW 35", "KW 36", "KW 37", "KW 38", "KW 39", "KW 40", "KW 41", "KW 42", "KW 43", "KW 44", "KW 45", "KW 46", "KW 47", "KW 48", "KW 49", "KW 50", "KW 51", "KW 52", "KW 53"]</script>
 
 <!-- Global Lehrer Dropdown (fixed-position, outside table) -->
 <div id="lehrer-drop-global"></div>
@@ -1281,6 +1281,7 @@ table.quali tbody tr:nth-child(even) td.quali-cell:not(.qualified) {
         <button onclick="exportBackup();toggleSettingsMenu(false)">&#128229; Backup exportieren</button>
         <button onclick="importBackup();toggleSettingsMenu(false)">&#128228; Backup importieren</button>
         <div class="menu-divider"></div>
+        <button onclick="showKWErweiternDialog();toggleSettingsMenu(false)">&#10133; Wochen hinzufügen</button>
         <button onclick="showGitHubSetup();toggleSettingsMenu(false)">&#128274; Login</button>
       </div>
       <input type="file" id="backup-file-input" accept=".json"
@@ -1964,6 +1965,14 @@ function _applyLoadedData(d) {
     }
     if (d.feiertage)          state.feiertage          = d.feiertage;
     if (d.theo)               state.theo               = d.theo;
+    // Dynamisch hinzugefügte KWs (z.B. 2027+) in KW_NAMES aufnehmen
+    if (d.kw_data) {
+        Object.keys(d.kw_data).forEach(function(k) {
+            if (k.startsWith('KW ') && !KW_NAMES.includes(k)) {
+                KW_NAMES.push(k);
+            }
+        });
+    }
     if (d.currentKW && KW_NAMES.includes(d.currentKW)) state.currentKW = d.currentKW;
 }
 
@@ -2593,9 +2602,10 @@ function showTab(id) {
 function renderKW() {
     const kw = state.currentKW;
     const isArchiv = kw && kw.includes('/25');
-    // KW-Label: bei Archiv-KWs Jahreszahl anzeigen
-    const kwNum = isArchiv ? kw.replace('/25','') : kw;
-    document.getElementById('kw-label').textContent = kwNum || '';
+    // KW-Label: bei Archiv-KWs/anderen Jahren Jahreszahl anzeigen
+    const parsed = kw ? _kwParseYearNum(kw) : null;
+    const kwDisplayName = parsed ? 'KW ' + parsed.num : (kw || '');
+    document.getElementById('kw-label').textContent = kwDisplayName;
     const dateEl = document.getElementById('kw-date-label');
     if (dateEl) dateEl.textContent = isArchiv ? '(Archiv 2025)' : formatKWDateRange(kw || '');
     const selQ = document.getElementById('kw-quick-select');
@@ -2619,9 +2629,9 @@ function renderKW() {
 // Alle KWs sortiert (2025-Archiv zuerst, dann 2026)
 function _getAllKWNamesSorted() {
     function kwSortKey(k) {
-        const m = k.match(/\d+/);
-        const num = m ? parseInt(m[0]) : 0;
-        return k.includes('/25') ? num : 1000 + num;
+        var parsed = _kwParseYearNum(k);
+        if (!parsed) return 999999;
+        return parsed.year * 100 + parsed.num;
     }
     return Object.keys(state.kw_data)
         .filter(k => k.startsWith('KW '))
@@ -4143,18 +4153,30 @@ function applyAutoplan() {
 }
 
 // === KW-Datum-Berechnung ===
+function _kwParseYearNum(kwName) {
+    // "KW 5" → {year:2026, num:5}, "KW 12/25" → {year:2025, num:12}, "KW 3/27" → {year:2027, num:3}
+    var s = (kwName || '').replace('KW','').trim();
+    var parts = s.split('/');
+    var num = parseInt(parts[0], 10);
+    if (isNaN(num)) return null;
+    var year = 2026; // Default
+    if (parts.length > 1) {
+        var ySuffix = parseInt(parts[1], 10);
+        if (!isNaN(ySuffix)) year = 2000 + ySuffix;
+    }
+    return { year: year, num: num };
+}
+
 function getKWMonday(kwName) {
-    // kwName = "KW 05" format
-    const kwNum = parseInt((kwName || '').replace(/[^0-9]/g, ''), 10);
-    if (isNaN(kwNum)) return null;
-    // ISO week: find Jan 4 of 2026 (always in week 1), go back to Monday of that week
-    const year = 2026;
-    const jan4 = new Date(year, 0, 4);
-    const dayOfWeek = jan4.getDay() || 7; // 1=Mon, 7=Sun
-    const week1Monday = new Date(jan4);
+    var parsed = _kwParseYearNum(kwName);
+    if (!parsed) return null;
+    // ISO week: find Jan 4 of the year (always in week 1), go back to Monday of that week
+    var jan4 = new Date(parsed.year, 0, 4);
+    var dayOfWeek = jan4.getDay() || 7; // 1=Mon, 7=Sun
+    var week1Monday = new Date(jan4);
     week1Monday.setDate(jan4.getDate() - (dayOfWeek - 1));
-    const monday = new Date(week1Monday);
-    monday.setDate(week1Monday.getDate() + (kwNum - 1) * 7);
+    var monday = new Date(week1Monday);
+    monday.setDate(week1Monday.getDate() + (parsed.num - 1) * 7);
     return monday;
 }
 
@@ -4169,37 +4191,82 @@ function formatKWDateRange(kwName) {
     return fmt(monday) + ' \u2013 ' + fmt(friday);
 }
 
-// ── NRW FEIERTAGE ────────────────────────────────────────────────────────────
-const FEIERTAGE_NRW = {
-    // 2025 - feste + osterabhängige
-    "2025-01-01": "Neujahr", "2025-04-18": "Karfreitag", "2025-04-21": "Ostermontag",
-    "2025-05-01": "Tag der Arbeit", "2025-05-29": "Christi Himmelfahrt",
-    "2025-06-09": "Pfingstmontag", "2025-06-19": "Fronleichnam",
-    "2025-10-03": "Tag der Dt. Einheit", "2025-11-01": "Allerheiligen",
-    "2025-12-25": "1. Weihnachtstag", "2025-12-26": "2. Weihnachtstag",
-    // 2026
-    "2026-01-01": "Neujahr", "2026-04-03": "Karfreitag", "2026-04-06": "Ostermontag",
-    "2026-05-01": "Tag der Arbeit", "2026-05-14": "Christi Himmelfahrt",
-    "2026-05-25": "Pfingstmontag", "2026-06-04": "Fronleichnam",
-    "2026-10-03": "Tag der Dt. Einheit", "2026-11-01": "Allerheiligen",
-    "2026-12-25": "1. Weihnachtstag", "2026-12-26": "2. Weihnachtstag"
-};
+// ── NRW FEIERTAGE (algorithmisch für jedes Jahr) ─────────────────────────────
+var _feiertagCache = {}; // year → {"YYYY-MM-DD": "Name", ...}
+
+function _osterSonntag(year) {
+    // Gauss/Spencer-Algorithmus für Ostersonntag
+    var a = year % 19;
+    var b = Math.floor(year / 100);
+    var c = year % 100;
+    var d = Math.floor(b / 4);
+    var e = b % 4;
+    var f = Math.floor((b + 8) / 25);
+    var g = Math.floor((b - f + 1) / 3);
+    var h = (19 * a + b - d - g + 15) % 30;
+    var i = Math.floor(c / 4);
+    var k = c % 4;
+    var l = (32 + 2 * e + 2 * i - h - k) % 7;
+    var m = Math.floor((a + 11 * h + 22 * l) / 451);
+    var month = Math.floor((h + l - 7 * m + 114) / 31); // 3=März, 4=April
+    var day = ((h + l - 7 * m + 114) % 31) + 1;
+    return new Date(year, month - 1, day);
+}
+
+function _addDays(d, n) {
+    var r = new Date(d);
+    r.setDate(r.getDate() + n);
+    return r;
+}
+
+function berechneFeiertagNRW(year) {
+    if (_feiertagCache[year]) return _feiertagCache[year];
+    var fmt = function(d) { return _dateStr(d); };
+    var ostern = _osterSonntag(year);
+    var feiertage = {};
+    // Feste Feiertage NRW
+    feiertage[year + '-01-01'] = 'Neujahr';
+    feiertage[year + '-05-01'] = 'Tag der Arbeit';
+    feiertage[year + '-10-03'] = 'Tag der Dt. Einheit';
+    feiertage[year + '-11-01'] = 'Allerheiligen';
+    feiertage[year + '-12-25'] = '1. Weihnachtstag';
+    feiertage[year + '-12-26'] = '2. Weihnachtstag';
+    // Osterabhängige Feiertage
+    feiertage[fmt(_addDays(ostern, -2))]  = 'Karfreitag';
+    feiertage[fmt(_addDays(ostern, 1))]   = 'Ostermontag';
+    feiertage[fmt(_addDays(ostern, 39))]  = 'Christi Himmelfahrt';
+    feiertage[fmt(_addDays(ostern, 50))]  = 'Pfingstmontag';
+    feiertage[fmt(_addDays(ostern, 60))]  = 'Fronleichnam';
+    _feiertagCache[year] = feiertage;
+    return feiertage;
+}
+
+// Dynamisches Lookup: prüft Feiertag für beliebiges Datum
+function _getFeiertagForDate(dateStr) {
+    var year = parseInt(dateStr.substring(0, 4), 10);
+    var ft = berechneFeiertagNRW(year);
+    return ft[dateStr] || '';
+}
 
 function _dateStr(d) {
     return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
 }
 
 function initFeiertagNRW() {
-    const dayNames = ['', 'mo', 'di', 'mi', 'do', 'fr'];  // 1=Mo, 5=Fr
-    KW_NAMES.forEach(function(kw) {
-        if (kw.includes('/25')) return;  // Archiv-KWs überspringen
+    var dayNames = ['', 'mo', 'di', 'mi', 'do', 'fr'];  // 1=Mo, 5=Fr
+    // Über ALLE KWs iterieren (KW_NAMES + dynamisch hinzugefügte)
+    var allKWs = Object.keys(state.kw_data).concat(KW_NAMES);
+    var seen = {};
+    allKWs.forEach(function(kw) {
+        if (seen[kw]) return;
+        seen[kw] = true;
         var monday = getKWMonday(kw);
         if (!monday) return;
         for (var i = 0; i < 5; i++) {
             var d = new Date(monday);
             d.setDate(monday.getDate() + i);
             var ds = _dateStr(d);
-            if (FEIERTAGE_NRW[ds]) {
+            if (_getFeiertagForDate(ds)) {
                 if (!state.feiertage[kw]) state.feiertage[kw] = [];
                 var dayCode = dayNames[i + 1];
                 if (!state.feiertage[kw].includes(dayCode)) {
@@ -4218,7 +4285,7 @@ function getFeiertagName(kw, day) {
     if (dayIdx < 0) return '';
     var d = new Date(monday);
     d.setDate(monday.getDate() + dayIdx);
-    return FEIERTAGE_NRW[_dateStr(d)] || '';
+    return _getFeiertagForDate(_dateStr(d));
 }
 
 // ── KLASSENBUCH-FUNKTIONEN ───────────────────────────────────────────────────
@@ -4889,6 +4956,106 @@ function renderTheo() {
     });
 }
 
+// === KW-Erweiterung (neue Wochen/Jahre hinzufügen) ===
+function showKWErweiternDialog() {
+    var nextYear = 2027;
+    // Finde das höchste Jahr in den vorhandenen KWs
+    Object.keys(state.kw_data).forEach(function(k) {
+        var p = _kwParseYearNum(k);
+        if (p && p.year >= nextYear) nextYear = p.year + 1;
+    });
+    // Prüfe ob 2026 schon komplett ist
+    var has2026All = KW_NAMES.includes('KW 52');
+
+    var html = '<div style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:10000;display:flex;align-items:center;justify-content:center;" id="kw-erw-overlay" onclick="if(event.target===this)this.remove()">'
+        + '<div style="background:white;border-radius:16px;padding:24px;max-width:400px;width:90%;box-shadow:0 8px 30px rgba(0,0,0,0.3);">'
+        + '<h3 style="margin:0 0 16px;font-size:16px;">Wochen hinzuf\u00fcgen</h3>'
+        + '<div style="margin-bottom:12px;">'
+        + '<label style="font-size:13px;font-weight:600;display:block;margin-bottom:4px;">Jahr</label>'
+        + '<select id="kw-erw-jahr" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;font-size:14px;" onchange="_kwErwUpdatePreview()">';
+    for (var y = 2026; y <= 2030; y++) {
+        html += '<option value="' + y + '"' + (y === nextYear ? ' selected' : '') + '>' + y + '</option>';
+    }
+    html += '</select></div>'
+        + '<div style="display:flex;gap:12px;margin-bottom:12px;">'
+        + '<div style="flex:1;"><label style="font-size:13px;font-weight:600;display:block;margin-bottom:4px;">Von KW</label>'
+        + '<input id="kw-erw-von" type="number" min="1" max="53" value="1" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;font-size:14px;box-sizing:border-box;" onchange="_kwErwUpdatePreview()"></div>'
+        + '<div style="flex:1;"><label style="font-size:13px;font-weight:600;display:block;margin-bottom:4px;">Bis KW</label>'
+        + '<input id="kw-erw-bis" type="number" min="1" max="53" value="52" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;font-size:14px;box-sizing:border-box;" onchange="_kwErwUpdatePreview()"></div>'
+        + '</div>'
+        + '<div id="kw-erw-preview" style="font-size:12px;color:#666;margin-bottom:16px;padding:8px;background:#f5f5f5;border-radius:8px;"></div>'
+        + '<div style="display:flex;gap:8px;justify-content:flex-end;">'
+        + '<button onclick="document.getElementById(\'kw-erw-overlay\').remove()" style="padding:8px 16px;border:1px solid #ddd;border-radius:8px;background:white;cursor:pointer;">Abbrechen</button>'
+        + '<button onclick="_kwErweiternApply()" style="padding:8px 16px;border:none;border-radius:8px;background:#007aff;color:white;font-weight:600;cursor:pointer;">Hinzuf\u00fcgen</button>'
+        + '</div></div></div>';
+    document.body.insertAdjacentHTML('beforeend', html);
+    _kwErwUpdatePreview();
+}
+
+function _kwErwUpdatePreview() {
+    var jahr = parseInt(document.getElementById('kw-erw-jahr').value, 10);
+    var von = parseInt(document.getElementById('kw-erw-von').value, 10);
+    var bis = parseInt(document.getElementById('kw-erw-bis').value, 10);
+    var preview = document.getElementById('kw-erw-preview');
+    if (!preview || isNaN(jahr) || isNaN(von) || isNaN(bis)) return;
+    if (von > bis) { preview.innerHTML = '\u26a0 Von-KW muss kleiner/gleich Bis-KW sein.'; return; }
+    var count = bis - von + 1;
+    var suffix = (jahr === 2026) ? '' : '/' + String(jahr).slice(2);
+    var existing = 0;
+    for (var k = von; k <= bis; k++) {
+        var kwName = 'KW ' + k + suffix;
+        if (state.kw_data[kwName]) existing++;
+    }
+    var neu = count - existing;
+    var ftCount = 0;
+    var ft = berechneFeiertagNRW(jahr);
+    Object.keys(ft).forEach(function(ds) {
+        var d = new Date(ds + 'T00:00:00');
+        var dow = d.getDay();
+        if (dow >= 1 && dow <= 5) ftCount++; // nur Wochentage zählen
+    });
+    preview.innerHTML = '<strong>' + count + ' Wochen</strong> (KW ' + von + ' \u2013 KW ' + bis + ', ' + jahr + ')'
+        + '<br>' + (existing > 0 ? existing + ' bereits vorhanden, ' : '') + '<strong>' + neu + ' neu</strong>'
+        + '<br>' + ftCount + ' Feiertage in ' + jahr + ' werden automatisch erkannt';
+}
+
+function _kwErweiternApply() {
+    var jahr = parseInt(document.getElementById('kw-erw-jahr').value, 10);
+    var von = parseInt(document.getElementById('kw-erw-von').value, 10);
+    var bis = parseInt(document.getElementById('kw-erw-bis').value, 10);
+    if (isNaN(jahr) || isNaN(von) || isNaN(bis) || von > bis) return;
+
+    var suffix = (jahr === 2026) ? '' : '/' + String(jahr).slice(2);
+    var added = 0;
+    for (var k = von; k <= bis; k++) {
+        var kwName = 'KW ' + k + suffix;
+        // In KW_NAMES hinzufügen falls noch nicht drin
+        if (!KW_NAMES.includes(kwName)) KW_NAMES.push(kwName);
+        // Leere Slot-Struktur anlegen falls noch nicht vorhanden
+        if (!state.kw_data[kwName]) {
+            state.kw_data[kwName] = {};
+            added++;
+        }
+    }
+    // Feiertage für das neue Jahr berechnen
+    initFeiertagNRW();
+    // KW-Dropdown neu befüllen
+    _rebuildKWDropdown();
+    // Speichern
+    if (added > 0) markDirty();
+
+    // Dialog schließen
+    var overlay = document.getElementById('kw-erw-overlay');
+    if (overlay) overlay.remove();
+
+    // Info
+    if (added > 0) {
+        _showUndoToast('\u2705 ' + added + ' neue Wochen f\u00fcr ' + jahr + ' hinzugef\u00fcgt');
+    } else {
+        _showUndoToast('\u2139\ufe0f Alle Wochen existieren bereits');
+    }
+}
+
 // === Sidebar ===
 function toggleSidebar() {
     const sb  = document.getElementById('kw-sidebar');
@@ -5255,11 +5422,11 @@ function renderLernstand() {
     const istKW = _calcAllIstKW(gps);
 
     // Die letzten 4 KWs bis zur aktuellen (inkl.) bestimmen
-    // Sortierkey: historische /25-KWs kommen vor aktuellen KWs
+    // Sortierkey: nach Jahr + KW-Nummer
     function kwSortKey(k) {
-        const m = k.match(/\d+/);
-        const num = m ? parseInt(m[0]) : 0;
-        return k.includes('/25') ? num : 1000 + num;
+        var parsed = _kwParseYearNum(k);
+        if (!parsed) return 999999;
+        return parsed.year * 100 + parsed.num;
     }
     const allKWNames = Object.keys(state.kw_data)
         .filter(k => k.startsWith('KW '))
@@ -6399,40 +6566,51 @@ document.getElementById('kw-view').classList.add('active');
 document.querySelector('.tab-btn[data-tab="kw"]').classList.add('active');
 // Init undo UI
 _updateUndoUI();
-// Befülle KW-Schnell-Dropdown (2026 + Archiv 2025)
-(function() {
+// Befülle KW-Schnell-Dropdown (dynamisch für alle Jahre)
+function _rebuildKWDropdown() {
     var sel = document.getElementById('kw-quick-select');
     if (!sel) return;
-    // 2026-KWs als normale Optionen
-    var grp2026 = document.createElement('optgroup');
-    grp2026.label = '2026';
-    KW_NAMES.forEach(function(kw) {
-        var o = document.createElement('option');
-        o.value = kw;
-        var dateRange = (typeof formatKWDateRange === 'function') ? formatKWDateRange(kw) : '';
-        o.textContent = dateRange ? kw + '  ––  ' + dateRange : kw;
-        grp2026.appendChild(o);
+    var curVal = sel.value || state.currentKW || '';
+    sel.innerHTML = '';
+
+    // Alle KWs nach Jahr gruppieren
+    var allSorted = _getAllKWNamesSorted();
+    var byYear = {};
+    allSorted.forEach(function(kw) {
+        var parsed = _kwParseYearNum(kw);
+        if (!parsed) return;
+        var y = parsed.year;
+        if (!byYear[y]) byYear[y] = [];
+        byYear[y].push(kw);
     });
-    sel.appendChild(grp2026);
-    // Archiv 2025 als optgroup
-    var hist25 = _getAllKWNamesSorted().filter(function(k) { return k.includes('/25'); });
-    if (hist25.length > 0) {
-        var grp2025 = document.createElement('optgroup');
-        grp2025.label = '&#128194; Archiv 2025';
-        hist25.forEach(function(kw) {
+
+    // Sortierte Jahre
+    var years = Object.keys(byYear).map(Number).sort();
+    years.forEach(function(y) {
+        var grp = document.createElement('optgroup');
+        grp.label = String(y);
+        byYear[y].forEach(function(kw) {
             var o = document.createElement('option');
             o.value = kw;
-            var num = kw.replace('KW ','').replace('/25','');
-            o.textContent = 'KW ' + num + ' (2025)';
-            o.style.color = '#888';
-            grp2025.appendChild(o);
+            var dateRange = (typeof formatKWDateRange === 'function') ? formatKWDateRange(kw) : '';
+            var parsed = _kwParseYearNum(kw);
+            var displayName = 'KW ' + parsed.num;
+            o.textContent = dateRange ? displayName + '  \u2013\u2013  ' + dateRange : displayName;
+            if (y < 2026) o.style.color = '#888';
+            grp.appendChild(o);
         });
-        sel.appendChild(grp2025);
+        sel.appendChild(grp);
+    });
+
+    // Auswahl wiederherstellen
+    if (curVal && allSorted.includes(curVal)) {
+        sel.value = curVal;
+    } else {
+        var _curKW = (typeof getCurrentKWName === 'function') ? getCurrentKWName() : null;
+        sel.value = _curKW || KW_NAMES[0] || '';
     }
-    // Immer die aktuelle Kalenderwoche vorauswählen
-    var _curKW = (typeof getCurrentKWName === 'function') ? getCurrentKWName() : null;
-    sel.value = _curKW || KW_NAMES[0] || '';
-})();
+}
+_rebuildKWDropdown();
 
 </script>
 </body>
